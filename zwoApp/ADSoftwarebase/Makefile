@@ -1,23 +1,11 @@
-#Makefile at top of application tree
-TOP = .
+TOP = ..
 include $(TOP)/configure/CONFIG
-DIRS := $(DIRS) configure
-DIRS := $(DIRS) prosilicaSupport
-DIRS := $(DIRS) prosilicaApp
-prosilicaApp_DEPEND_DIRS += prosilicaSupport
-ifeq ($(BUILD_IOCS), YES)
-DIRS := $(DIRS) $(filter-out $(DIRS), $(wildcard iocs))
-iocs_DEPEND_DIRS += prosilicaApp
-endif
-include $(TOP)/configure/RULES_TOP
 
-uninstall: uninstall_iocs
-uninstall_iocs:
-	$(MAKE) -C iocs uninstall
-.PHONY: uninstall uninstall_iocs
+DIRS := $(DIRS) $(filter-out $(DIRS), $(wildcard *src*))
+DIRS := $(DIRS) $(filter-out $(DIRS), $(wildcard *Src*))
+DIRS := $(DIRS) $(filter-out $(DIRS), $(wildcard *db*))
+DIRS := $(DIRS) $(filter-out $(DIRS), $(wildcard *Db*))
+DIRS := $(DIRS) $(filter-out $(DIRS), $(wildcard *op*))
 
-realuninstall: realuninstall_iocs
-realuninstall_iocs:
-	$(MAKE) -C iocs realuninstall
-.PHONY: realuninstall realuninstall_iocs
+include $(TOP)/configure/RULES_DIRS
 
