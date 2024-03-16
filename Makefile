@@ -3,6 +3,8 @@ TOP = .
 include $(TOP)/configure/CONFIG
 DIRS := $(DIRS) configure
 DIRS := $(DIRS) zwoApp
+DIRS := $(DIRS) zwoSupport
+zwoApp_DEPEND_DIRS += zwoSupport
 ifeq ($(BUILD_IOCS), YES)
 DIRS := $(DIRS) $(filter-out $(DIRS), $(wildcard iocs))
 iocs_DEPEND_DIRS += zwoApp

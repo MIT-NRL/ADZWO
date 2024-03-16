@@ -16,6 +16,7 @@ INC += ZWODriver.h
 
 LIBRARY_IOC = ZWODriver
 LIB_SRCS += ZWODriver.cpp
+LIB_LIBS += ASICamera2
 
 DBD += ZWODriverSupport.dbd
 
