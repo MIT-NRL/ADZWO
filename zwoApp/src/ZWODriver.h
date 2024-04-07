@@ -1,4 +1,9 @@
 #include "ADDriver.h"
+#include "ASICamera2.h"
+#include "asynDriver.h"
+#include <epicsEvent.h>
+
+#define SHORT_WAIT (0.00025)
 
 class ZWODriver : public ADDriver {
 public:
@@ -16,7 +21,24 @@ public:
      */
     ZWODriver(const char *portName, int maxBuffers, size_t maxMemory,
               int priority, int stackSize);
+    ~ZWODriver();
+
+    virtual asynStatus connect(asynUser *pasynUser);
+    virtual asynStatus disconnect(asynUser *pasynUser);
+
+    virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
+    virtual asynStatus writeFloat64(asynUser *pasynUser, epicsFloat64 value);
+
+    void captureTask();
+    void pollingTask();
 
 private:
-    asynStatus connectCamera(int *cameraID);
+    int cameraID;
+    ASI_CAMERA_INFO cameraInfo;
+
+    epicsEvent *startEvent;
+    epicsEvent *stopEvent;
+
+    asynStatus connectCamera();
+    asynStatus disconnectCamera();
 };
