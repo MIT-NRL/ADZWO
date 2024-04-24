@@ -48,22 +48,10 @@ ZWODriver::ZWODriver(const char *portName, int maxBuffers, size_t maxMemory,
     this->cameraID = -1;
     this->connect(this->pasynUserSelf);
 
-    // // THIS IS JUST FOR TESTING
-    // int numControls;
-    // ASIGetNumOfControls(cameraID, &numControls);
-    // printf("NumControls: %d\n", numControls);
-
-    // for (int i = 0; i < numControls; i++) {
-    //     ASI_CONTROL_CAPS caps;
-    //     ASIGetControlCaps(cameraID, i, &caps);
-
-    //     printf("Caps %s\n", caps.Description);
-    // }
-    // // Setup Camera
-    ASISetROIFormat(cameraID, cameraInfo.MaxWidth, cameraInfo.MaxHeight, 1,
-                    ASI_IMG_RAW16);
-    setIntegerParam(NDColorMode, NDColorModeMono);
-    setIntegerParam(NDDataType, NDUInt16);
+    // Set default values
+    status |= setIntegerParam(
+        NDColorMode, cameraInfo.IsColorCam ? NDColorModeRGB3 : NDColorModeMono);
+    status |= setIntegerParam(NDDataType, NDUInt8);
 
     // Create the thread that performs the image capturing
     status = (epicsThreadCreate("ZWODriverCaptureTask", epicsThreadPriorityHigh,
@@ -108,18 +96,42 @@ asynStatus ZWODriver::writeInt32(asynUser *pasynUser, epicsInt32 value) {
     int function = pasynUser->reason;
     int status = asynSuccess;
 
+    int acquiring;
+    getIntegerParam(ADAcquire, &acquiring);
+
     if (function == ADAcquire) {
-        if (value == 1) {
+        if (value == 1 && !acquiring) {
             startEvent->signal();
         }
 
-        if (value == 0) {
+        if (value == 0 && acquiring) {
             stopEvent->signal();
         }
     }
 
-    status |= ADDriver::writeInt32(pasynUser, value);
+    if ((function == ADBinX) || (function == ADBinY)) {
+        // Keep BinX and BinY in sync, and ensure that they are valid values
+        for (int i = 0; i < 16; i++) {
+            if (cameraInfo.SupportedBins[i] == 0)
+                break;
+            if (cameraInfo.SupportedBins[i] == value) {
+                status |= setIntegerParam(ADBinX, value);
+                status |= setIntegerParam(ADBinY, value);
+                status |= callParamCallbacks();
+                return (asynStatus)status;
+            }
+        }
 
+        return asynError;
+    }
+
+    if (function == NDDataType) {
+        if ((value != NDUInt8) && (value != NDUInt16)) {
+            return asynError;
+        }
+    }
+
+    status |= ADDriver::writeInt32(pasynUser, value);
     return (asynStatus)status;
 }
 
@@ -129,25 +141,128 @@ asynStatus ZWODriver::writeFloat64(asynUser *pasynUser, epicsFloat64 value) {
 
     if (function == ADAcquireTime) {
         long exposureTime = value * 1000 * 1000;
-        status |= (ASISetControlValue(cameraID, ASI_EXPOSURE, exposureTime,
-                                      ASI_FALSE) == ASI_SUCCESS
-                       ? asynSuccess
-                       : asynError);
+        status |=
+            ASISetControlValue(cameraID, ASI_EXPOSURE, exposureTime, ASI_FALSE);
     } else if (function == ADGain) {
-        status |= (ASISetControlValue(cameraID, ASI_GAIN, (long)value,
-                                      ASI_FALSE) == ASI_SUCCESS
-                       ? asynSuccess
-                       : asynError);
+        status |=
+            ASISetControlValue(cameraID, ASI_GAIN, (long)value, ASI_FALSE);
     } else if (function == ADTemperature) {
         int targetTemp = value;
-        status |= (ASISetControlValue(cameraID, ASI_TARGET_TEMP, targetTemp,
-                                      ASI_FALSE) == ASI_SUCCESS
-                       ? asynSuccess
-                       : asynError);
+        status |= ASISetControlValue(cameraID, ASI_TARGET_TEMP, targetTemp,
+                                     ASI_FALSE);
     }
 
     status |= ADDriver::writeFloat64(pasynUser, value);
     return (asynStatus)status;
+}
+
+asynStatus ZWODriver::setROIFormat(ROIFormat_t *out) {
+    int status = asynSuccess;
+    int colorMode, dataType;
+    ASI_IMG_TYPE imgType;
+
+    status |= getIntegerParam(NDColorMode, &colorMode);
+    status |= getIntegerParam(NDDataType, &dataType);
+
+    int binX, binY, minX, minY, sizeX, sizeY, maxSizeX, maxSizeY;
+    int imgWidth, imgHeight, imgBin, startX, startY;
+
+    status |= getIntegerParam(ADMinX, &minX);
+    status |= getIntegerParam(ADMinY, &minY);
+    status |= getIntegerParam(ADSizeX, &sizeX);
+    status |= getIntegerParam(ADSizeY, &sizeY);
+    status |= getIntegerParam(ADBinX, &binX);
+    status |= getIntegerParam(ADBinY, &binY);
+    maxSizeX = cameraInfo.MaxWidth;
+    maxSizeY = cameraInfo.MaxHeight;
+
+    // Image Type (Color & Data Type)
+    if ((colorMode == NDColorModeMono) && (dataType == NDUInt8)) {
+        if (cameraInfo.IsColorCam) {
+            imgType = ASI_IMG_Y8;
+        } else {
+            imgType = ASI_IMG_RAW8;
+        }
+    } else if ((colorMode == NDColorModeMono) && (dataType == NDUInt16)) {
+        if (cameraInfo.IsColorCam)
+            goto unsupportedMode;
+        imgType = ASI_IMG_RAW16;
+    } else if ((colorMode == NDColorModeRGB3) && (dataType == NDUInt8)) {
+        if (!cameraInfo.IsColorCam)
+            goto unsupportedMode;
+        imgType = ASI_IMG_RGB24;
+    } else if ((colorMode == NDColorModeBayer) && (dataType == NDUInt8)) {
+        if (!cameraInfo.IsColorCam)
+            goto unsupportedMode;
+        imgType = ASI_IMG_RAW8;
+    } else if ((colorMode == NDColorModeBayer) && (dataType == NDUInt16)) {
+        if (!cameraInfo.IsColorCam)
+            goto unsupportedMode;
+        imgType = ASI_IMG_RAW16;
+    } else {
+    unsupportedMode:
+        asynPrint(
+            this->pasynUserSelf, ASYN_TRACE_ERROR,
+            "%s:%s: error unsupported data type %d and/or color mode %d\n",
+            driverName, __func__, dataType, colorMode);
+
+        return asynError;
+    }
+
+    // ROI
+    if (binX < 1) {
+        binX = 1;
+        status |= setIntegerParam(ADBinX, binX);
+    }
+    if (binY < 1) {
+        binY = 1;
+        status |= setIntegerParam(ADBinY, binY);
+    }
+
+    if (binX != binY) {
+        // X and Y binning must be equal
+        return asynError;
+    }
+    imgBin = binX;
+
+    if (minX + sizeX > maxSizeX) {
+        sizeX = maxSizeX - minX;
+        status |= setIntegerParam(ADSizeX, sizeX);
+    }
+    if (minY + sizeY > maxSizeY) {
+        sizeY = maxSizeY - minY;
+        status |= setIntegerParam(ADSizeY, sizeY);
+    }
+
+    imgWidth = sizeX / binX;
+    imgHeight = sizeY / binY;
+    startX = minX / binX;
+    startY = minY / binY;
+
+    if (imgWidth % 8 != 0) {
+        imgWidth -= (imgWidth % 8);
+        status |= setIntegerParam(ADSizeX, imgWidth * binX);
+    }
+    if (imgHeight % 2 != 0) {
+        imgHeight -= (imgHeight % 8);
+        status |= setIntegerParam(ADSizeY, imgHeight * binY);
+    }
+
+    status |= ASISetROIFormat(cameraID, imgWidth, imgHeight, imgBin, imgType);
+    status |= ASISetStartPos(cameraID, startX, startY);
+
+    if (status == asynSuccess && out != NULL) {
+        out->colorMode = (NDColorMode_t)colorMode;
+        out->dataType = (NDDataType_t)dataType;
+        out->imgType = imgType;
+        out->imgWidth = imgWidth;
+        out->imgHeight = imgHeight;
+        out->imgBin = imgBin;
+        out->startX = startX;
+        out->startY = startY;
+    }
+
+    return ((asynStatus)status);
 }
 
 asynStatus ZWODriver::connectCamera() {
@@ -241,6 +356,8 @@ asynStatus ZWODriver::connectCamera() {
     }
 
     // Print ID
+    // It turns out that this ID is only available to read after connecting to
+    // the camera
     ASI_ID asiId;
     ASIGetID(cameraInfo.CameraID, &asiId);
 
@@ -270,94 +387,119 @@ asynStatus ZWODriver::disconnectCamera() {
 
 void ZWODriver::captureTask() {
     int status = asynSuccess;
-    int minX, minY, sizeX, sizeY, maxSizeX, maxSizeY;
-    int bin = 1;
-
     int imageCounter;
     int numImages, numImagesCounter;
+    int imageMode;
+    int acquire = 0;
+    int arrayCallbacks;
     epicsTimeStamp startTime, endTime;
-
-    getIntegerParam(ADMinX, &minX);
-    getIntegerParam(ADMinY, &minY);
-    getIntegerParam(ADSizeX, &sizeX);
-    getIntegerParam(ADSizeY, &sizeY);
-    // getIntegerParam(ADBinX, &camBinX);
-    // getIntegerParam(ADBinY, &camBinY);
-
-    status |= getIntegerParam(ADMinX, &minX);
-    status |= getIntegerParam(ADMinY, &minY);
-    status |= getIntegerParam(ADSizeX, &sizeX);
-    status |= getIntegerParam(ADSizeY, &sizeY);
-    status |= getIntegerParam(ADMaxSizeX, &maxSizeX);
-    status |= getIntegerParam(ADMaxSizeY, &maxSizeY);
-
-    // if (minX + sizeX > maxSizeX) {
-    //     sizeX = maxSizeX - minX;
-    //     setIntegerParam(ADSizeX, sizeX);
-    // }
-
-    // if (minY + sizeY > maxSizeY) {
-    //     sizeY = maxSizeY - minY;
-    //     setIntegerParam(ADSizeY, sizeY);
-    // }
-
-    // Set all the parameters
+    double acquirePeriod;
 
     ASI_EXPOSURE_STATUS exposureStatus;
+    ROIFormat_t roiFormat;
 
+    this->lock();
     while (true) {
         if (cameraID < 0) {
             epicsThreadSleep(1);
             continue;
         }
 
-        bool signal = this->startEvent->wait(1);
-        if (!signal)
+        // If not currently acquiring, wait for semaphore signal
+        if (!acquire) {
+            this->unlock();
+            bool signal = this->startEvent->wait(1);
+            this->lock();
+
+            if (!signal)
+                continue;
+            acquire = 1;
+            setIntegerParam(ADNumImagesCounter, 0);
+        }
+
+        epicsTimeGetCurrent(&startTime);
+
+        // Send parameters to camera
+        status = asynSuccess;
+        status |= setROIFormat(&roiFormat);
+
+        if (status != 0) {
+            acquire = 0;
+            setIntegerParam(ADAcquire, 0);
+            setIntegerParam(ADStatus, ADStatusError);
+            callParamCallbacks();
             continue;
-
-        this->lock();
-
-        // TODO: Send parameters to camera
-
-        this->unlock();
+        }
 
         // Wait until camera is ready to start with exposure
+        this->unlock();
         while (!ASIGetExpStatus(cameraID, &exposureStatus) &&
                exposureStatus == ASI_EXP_WORKING) {
             epicsThreadSleep(SHORT_WAIT);
         }
+        this->lock();
 
         if (ASIStartExposure(cameraID, ASI_FALSE)) {
             // FAILED
-            printf("------------------------ Failed to start exposure\n");
+            setIntegerParam(ADStatus, ADStatusError);
+            callParamCallbacks();
             continue;
         }
 
         setIntegerParam(ADStatus, ADStatusAcquire);
         callParamCallbacks();
-        epicsTimeGetCurrent(&startTime);
 
         // Wait until image has been acquired
         while (!ASIGetExpStatus(cameraID, &exposureStatus) &&
                exposureStatus == ASI_EXP_WORKING) {
-            epicsThreadSleep(SHORT_WAIT);
+            this->unlock();
+            bool s = this->stopEvent->wait(SHORT_WAIT);
+            this->lock();
+            if (s) {
+                // Abort exposure
+                ASIStopExposure(cameraID);
+
+                acquire = 0;
+                setIntegerParam(ADAcquire, 0);
+                getIntegerParam(ADImageMode, &imageMode);
+                if (imageMode == ADImageContinuous) {
+                    setIntegerParam(ADStatus, ADStatusIdle);
+                } else {
+                    setIntegerParam(ADStatus, ADStatusAborted);
+                }
+                callParamCallbacks();
+                continue;
+            }
         }
 
-        if (exposureStatus == ASI_EXP_SUCCESS) {
-            printf("------------------------ EXP SUCCESS\n");
+        getIntegerParam(NDArrayCounter, &imageCounter);
+        getIntegerParam(ADNumImages, &numImages);
+        getIntegerParam(ADNumImagesCounter, &numImagesCounter);
+        getIntegerParam(ADImageMode, &imageMode);
+        getIntegerParam(NDArrayCallbacks, &arrayCallbacks);
+        getDoubleParam(ADAcquirePeriod, &acquirePeriod);
 
+        if (exposureStatus == ASI_EXP_SUCCESS) {
             // Update counters
-            getIntegerParam(NDArrayCounter, &imageCounter);
-            getIntegerParam(ADNumImagesCounter, &numImagesCounter);
             numImagesCounter++;
             imageCounter++;
             setIntegerParam(NDArrayCounter, imageCounter);
             setIntegerParam(ADNumImagesCounter, numImagesCounter);
 
-            // XXXXXXXXXXXXXXXXXXXX
-            size_t dims[2] = {(size_t)maxSizeX, (size_t)maxSizeY};
-            NDArray *pImage =
-                this->pNDArrayPool->alloc(2, dims, NDUInt16, 0, NULL);
+            // Allocate pImage and read data from camera
+            NDArray *pImage;
+
+            if (roiFormat.imgType == ASI_IMG_RGB24) {
+                size_t dims[3] = {(size_t)roiFormat.imgWidth,
+                                  (size_t)roiFormat.imgHeight, 3};
+                pImage = this->pNDArrayPool->alloc(3, dims, roiFormat.dataType,
+                                                   0, NULL);
+            } else {
+                size_t dims[2] = {(size_t)roiFormat.imgWidth,
+                                  (size_t)roiFormat.imgHeight};
+                pImage = this->pNDArrayPool->alloc(2, dims, roiFormat.dataType,
+                                                   0, NULL);
+            }
 
             pImage->uniqueId = imageCounter;
             pImage->timeStamp = startTime.secPastEpoch + startTime.nsec / 1.e9;
@@ -366,23 +508,55 @@ void ZWODriver::captureTask() {
             ASIGetDataAfterExp(cameraID, (unsigned char *)pImage->pData,
                                pImage->dataSize);
 
-            for (int i = 0; i < 128; i++) {
-                printf("%d\n", ((uint16_t *)pImage->pData)[i]);
+            if (arrayCallbacks) {
+                doCallbacksGenericPointer(pImage, NDArrayData, 0);
             }
-
-            doCallbacksGenericPointer(pImage, NDArrayData, 0);
             pImage->release();
         } else {
             // ERROR
-            printf("------------------------ EXP FAILED\n");
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
+                      "%s:%s: Exposure failed with status %d\n", driverName,
+                      __func__, exposureStatus);
+
+            setIntegerParam(ADStatus, ADStatusError);
         }
 
-        // setIntegerParam(ADStatus, ADStatusIdle);
+        callParamCallbacks();
 
-        callParamCallbacks();
-        // Complete Acquire callback
-        setIntegerParam(ADAcquire, 0);
-        callParamCallbacks();
+        // Check if we are done with acquisition
+        getIntegerParam(ADAcquire, &acquire);
+        if ((acquire == 0) || (imageMode == ADImageSingle) ||
+            ((imageMode == ADImageMultiple) &&
+             (numImagesCounter >= numImages))) {
+            acquire = 0;
+            setIntegerParam(ADAcquire, 0);
+            setIntegerParam(ADStatus, ADStatusIdle);
+            callParamCallbacks();
+        }
+
+        if (acquire) {
+            epicsTimeGetCurrent(&endTime);
+            double elapsedTime = epicsTimeDiffInSeconds(&endTime, &startTime);
+            double delay = acquirePeriod - elapsedTime;
+
+            if (delay > 0) {
+                setIntegerParam(ADStatus, ADStatusWaiting);
+                callParamCallbacks();
+                this->unlock();
+                bool s = this->stopEvent->wait(delay);
+                this->lock();
+                if (s) {
+                    acquire = 0;
+                    if (imageMode == ADImageContinuous) {
+                        setIntegerParam(ADStatus, ADStatusIdle);
+                    } else {
+                        setIntegerParam(ADStatus, ADStatusAborted);
+                    }
+                    setIntegerParam(ADAcquire, 0);
+                    callParamCallbacks();
+                }
+            }
+        }
     }
 }
 

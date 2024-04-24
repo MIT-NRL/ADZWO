@@ -1,9 +1,21 @@
 #include "ADDriver.h"
 #include "ASICamera2.h"
+#include "NDArray.h"
+#include "NDAttribute.h"
 #include "asynDriver.h"
 #include <epicsEvent.h>
 
 #define SHORT_WAIT (0.00025)
+
+typedef struct ROIFormat {
+    NDColorMode_t colorMode;
+    NDDataType_t dataType;
+    ASI_IMG_TYPE imgType;
+
+    int imgWidth, imgHeight;
+    int imgBin;
+    int startX, startY;
+} ROIFormat_t;
 
 class ZWODriver : public ADDriver {
 public:
@@ -39,6 +51,7 @@ private:
     epicsEvent *startEvent;
     epicsEvent *stopEvent;
 
+    asynStatus setROIFormat(ROIFormat_t *out);
     asynStatus connectCamera();
     asynStatus disconnectCamera();
 };

@@ -31,20 +31,20 @@ dbLoadRecords("$(ADZWO)/db/ZWODriver.template","P=$(PREFIX),R=cam1:,PORT=$(PORT)
 # Create a standard arrays plugin.
 NDStdArraysConfigure("Image1", 3, 0, "$(PORT)", 0)
 
-# This creates a waveform large enough for 2048x2048x3 (e.g. RGB color) arrays.
+# This creates a waveform large enough for 4096x4096x3 (e.g. RGB color) arrays.
 # This waveform only allows transporting 8-bit images
-#dbLoadRecords("$(ADCORE)/db/NDStdArrays.template", "P=$(PREFIX),R=image1:,PORT=Image1,ADDR=0,TIMEOUT=1,NDARRAY_PORT=$(PORT),TYPE=Int8,FTVL=UCHAR,NELEMENTS=12582912")
+#dbLoadRecords("$(ADCORE)/db/NDStdArrays.template", "P=$(PREFIX),R=image1:,PORT=Image1,ADDR=0,TIMEOUT=1,NDARRAY_PORT=$(PORT),TYPE=Int8,FTVL=UCHAR,NELEMENTS=50331648")
 # This waveform allows transporting 16-bit images
-dbLoadRecords("$(ADCORE)/db/NDStdArrays.template", "P=$(PREFIX),R=image1:,PORT=Image1,ADDR=0,TIMEOUT=1,NDARRAY_PORT=$(PORT),TYPE=Int16,FTVL=SHORT,NELEMENTS=12582912")
+dbLoadRecords("$(ADCORE)/db/NDStdArrays.template", "P=$(PREFIX),R=image1:,PORT=Image1,ADDR=0,TIMEOUT=1,NDARRAY_PORT=$(PORT),TYPE=Int16,FTVL=SHORT,NELEMENTS=50331648")
 
 # Load all other plugins using commonPlugins.cmd
 < $(ADCORE)/iocBoot/commonPlugins.cmd
-set_requestfile_path("$(ADURL)/urlApp/Db")
+set_requestfile_path("$(ADZWO)/zwoApp/Db")
 
 asynSetTraceIOMask("$(PORT)",0,2)
 #asynSetTraceMask("$(PORT)",0,255)
 
 iocInit()
 
-# save things every thirty seconds
-create_monitor_set("auto_settings.req", 30, "P=$(PREFIX)")
+# save things every five seconds
+create_monitor_set("auto_settings.req", 5, "P=$(PREFIX)")
