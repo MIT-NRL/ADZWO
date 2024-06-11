@@ -20,7 +20,7 @@
 #include <iocsh.h>
 
 static const char *driverName = "ZWODriver";
-static const char *driverVersion = "0.0.1";
+static const char *driverVersion = "0.1.0";
 
 static void ZWODriverCaptureTaskC(void *drvPvt) {
     ZWODriver *driver = (ZWODriver *)drvPvt;
