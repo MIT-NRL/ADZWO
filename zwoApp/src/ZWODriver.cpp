@@ -508,6 +508,8 @@ void ZWODriver::captureTask() {
             ASIGetDataAfterExp(cameraID, (unsigned char *)pImage->pData,
                                pImage->dataSize);
 
+            this->getAttributes(pImage->pAttributeList);
+            
             if (arrayCallbacks) {
                 doCallbacksGenericPointer(pImage, NDArrayData, 0);
             }
