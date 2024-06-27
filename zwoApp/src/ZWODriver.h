@@ -1,3 +1,6 @@
+#ifndef ZWODRIVER_H
+#define ZWODRIVER_H
+
 #include "ADDriver.h"
 #include "ASICamera2.h"
 #include "NDArray.h"
@@ -6,6 +9,8 @@
 #include <epicsEvent.h>
 
 #define SHORT_WAIT (0.00025)
+
+#define ADOffsetString "OFFSET"
 
 typedef struct ROIFormat {
     NDColorMode_t colorMode;
@@ -54,4 +59,9 @@ private:
     asynStatus setROIFormat(ROIFormat_t *out);
     asynStatus connectCamera();
     asynStatus disconnectCamera();
+
+protected:
+    int ADOffset;
 };
+
+#endif

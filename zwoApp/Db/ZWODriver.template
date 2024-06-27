@@ -1,1 +1,23 @@
 include "ADBase.template"
+
+
+###################################################################
+#  These records control the offset                                 # 
+###################################################################
+record(ao, "$(P)$(R)Offset")
+{
+   field(PINI, "YES")
+   field(DTYP, "asynFloat64")
+   field(OUT,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))OFFSET")
+   field(VAL,  "1.0")
+   field(PREC, "3")
+   info(autosaveFields, "VAL")
+}
+
+record(ai, "$(P)$(R)Offset_RBV")
+{
+   field(DTYP, "asynFloat64")
+   field(INP,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))OFFSET")
+   field(PREC, "3")
+   field(SCAN, "I/O Intr")
+}

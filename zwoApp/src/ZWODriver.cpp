@@ -38,6 +38,9 @@ ZWODriver::ZWODriver(const char *portName, int maxBuffers, size_t maxMemory,
                0,    /* No interfaces beyond those set in ADDriver.cpp */
                0, 1, /* ASYN_CANBLOCK=0, ASYN_MULTIDEVICE=0, autoConnect=1 */
                priority, stackSize) {
+
+    createParam(ADOffsetString, asynParamFloat64, &ADOffset);
+
     printf("\n\n\n\n\n");
 
     int status = asynSuccess;
@@ -146,6 +149,9 @@ asynStatus ZWODriver::writeFloat64(asynUser *pasynUser, epicsFloat64 value) {
     } else if (function == ADGain) {
         status |=
             ASISetControlValue(cameraID, ASI_GAIN, (long)value, ASI_FALSE);
+    } else if (function == ADOffset) {
+        status |=
+            ASISetControlValue(cameraID, ASI_OFFSET, (long)value, ASI_FALSE);
     } else if (function == ADTemperature) {
         int targetTemp = value;
         status |= ASISetControlValue(cameraID, ASI_TARGET_TEMP, targetTemp,
@@ -166,6 +172,7 @@ asynStatus ZWODriver::setROIFormat(ROIFormat_t *out) {
 
     int binX, binY, minX, minY, sizeX, sizeY, maxSizeX, maxSizeY;
     int imgWidth, imgHeight, imgBin, startX, startY;
+    __int128_t dataSize = 0;
 
     status |= getIntegerParam(ADMinX, &minX);
     status |= getIntegerParam(ADMinY, &minY);
@@ -173,6 +180,10 @@ asynStatus ZWODriver::setROIFormat(ROIFormat_t *out) {
     status |= getIntegerParam(ADSizeY, &sizeY);
     status |= getIntegerParam(ADBinX, &binX);
     status |= getIntegerParam(ADBinY, &binY);
+    // status |= getIntegerParam(NDArraySizeX, &imgWidth);
+    // status |= getIntegerParam(NDArraySizeY, &imgHeight);
+    // status |= setIntegerParam(NDArraySize, imgWidth * imgHeight * sizeof(epicsUInt8));
+
     maxSizeX = cameraInfo.MaxWidth;
     maxSizeY = cameraInfo.MaxHeight;
 
@@ -239,6 +250,14 @@ asynStatus ZWODriver::setROIFormat(ROIFormat_t *out) {
     startX = minX / binX;
     startY = minY / binY;
 
+    if (dataType == NDUInt8) {
+        dataSize = imgWidth*imgHeight*sizeof(epicsUInt8);
+    } else if (dataType == NDUInt16) {
+        dataSize = imgWidth*imgHeight*sizeof(epicsUInt16);
+    }
+
+    printf("imgWidth: %d, imgHeight: %d, dataSize: %ld\n", imgWidth, imgHeight, dataSize);
+
     if (imgWidth % 8 != 0) {
         imgWidth -= (imgWidth % 8);
         status |= setIntegerParam(ADSizeX, imgWidth * binX);
@@ -247,6 +266,10 @@ asynStatus ZWODriver::setROIFormat(ROIFormat_t *out) {
         imgHeight -= (imgHeight % 8);
         status |= setIntegerParam(ADSizeY, imgHeight * binY);
     }
+
+    status |= setIntegerParam(NDArraySizeX, imgWidth);
+    status |= setIntegerParam(NDArraySizeY, imgHeight);
+    status |= setIntegerParam(NDArraySize, imgWidth * imgHeight * dataSize);
 
     status |= ASISetROIFormat(cameraID, imgWidth, imgHeight, imgBin, imgType);
     status |= ASISetStartPos(cameraID, startX, startY);
@@ -337,6 +360,9 @@ asynStatus ZWODriver::connectCamera() {
     status |= setIntegerParam(ADSizeY, cameraInfo.MaxHeight);
     status |= setIntegerParam(ADMaxSizeX, cameraInfo.MaxWidth);
     status |= setIntegerParam(ADMaxSizeY, cameraInfo.MaxHeight);
+    status |= setIntegerParam(NDArraySizeX, cameraInfo.MaxWidth);
+    status |= setIntegerParam(NDArraySizeY, cameraInfo.MaxHeight);
+    // status |= setIntegerParam(NDArraySize, cameraInfo.MaxWidth * cameraInfo.MaxHeight * sizeof(epicsUInt8));
 
     if (status) {
         asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
