@@ -98,6 +98,7 @@ asynStatus ZWODriver::disconnect(asynUser *pasynUser) {
 asynStatus ZWODriver::writeInt32(asynUser *pasynUser, epicsInt32 value) {
     int function = pasynUser->reason;
     int status = asynSuccess;
+    int reverseX, reverseY;
 
     int acquiring;
     getIntegerParam(ADAcquire, &acquiring);
@@ -269,7 +270,7 @@ asynStatus ZWODriver::setROIFormat(ROIFormat_t *out) {
 
     status |= setIntegerParam(NDArraySizeX, imgWidth);
     status |= setIntegerParam(NDArraySizeY, imgHeight);
-    status |= setIntegerParam(NDArraySize, imgWidth * imgHeight * dataSize);
+    status |= setIntegerParam(NDArraySize, dataSize);
 
     status |= ASISetROIFormat(cameraID, imgWidth, imgHeight, imgBin, imgType);
     status |= ASISetStartPos(cameraID, startX, startY);
