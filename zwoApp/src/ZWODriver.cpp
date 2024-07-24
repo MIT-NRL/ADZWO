@@ -135,6 +135,27 @@ asynStatus ZWODriver::writeInt32(asynUser *pasynUser, epicsInt32 value) {
         }
     }
 
+    if ((function == ADReverseX) || (function == ADReverseY)) {
+        if (function == ADReverseX){
+            status |= getIntegerParam(ADReverseY, &reverseY);
+            reverseX = value;
+        } else if (function == ADReverseY) {
+            status |= getIntegerParam(ADReverseX, &reverseX);
+            reverseY = value;
+        }
+        printf("value: %d\n", value);
+        printf("reverseX: %d, reverseY: %d\n", reverseX, reverseY);
+        if (reverseX && reverseY) {
+            ASISetControlValue(cameraID, ASI_FLIP, ASI_FLIP_BOTH, ASI_FALSE);
+        } else if (reverseX && !reverseY) {
+            ASISetControlValue(cameraID, ASI_FLIP, ASI_FLIP_HORIZ, ASI_FALSE);
+        } else if (reverseY && !reverseX) {
+            ASISetControlValue(cameraID, ASI_FLIP, ASI_FLIP_VERT, ASI_FALSE);
+        } else {
+            ASISetControlValue(cameraID, ASI_FLIP, ASI_FLIP_NONE, ASI_FALSE);
+        }
+    }
+
     status |= ADDriver::writeInt32(pasynUser, value);
     return (asynStatus)status;
 }
