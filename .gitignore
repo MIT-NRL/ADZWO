@@ -9,7 +9,7 @@
 /templates/
 
 # Local configuration files
-/configure/*.local
+*.local
 
 # iocBoot generated files
 /iocBoot/*ioc*/cdCommands

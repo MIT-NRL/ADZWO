@@ -135,27 +135,6 @@ asynStatus ZWODriver::writeInt32(asynUser *pasynUser, epicsInt32 value) {
         }
     }
 
-    if ((function == ADReverseX) || (function == ADReverseY)) {
-        if (function == ADReverseX){
-            status |= getIntegerParam(ADReverseY, &reverseY);
-            reverseX = value;
-        } else if (function == ADReverseY) {
-            status |= getIntegerParam(ADReverseX, &reverseX);
-            reverseY = value;
-        }
-        printf("value: %d\n", value);
-        printf("reverseX: %d, reverseY: %d\n", reverseX, reverseY);
-        if (reverseX && reverseY) {
-            ASISetControlValue(cameraID, ASI_FLIP, ASI_FLIP_BOTH, ASI_FALSE);
-        } else if (reverseX && !reverseY) {
-            ASISetControlValue(cameraID, ASI_FLIP, ASI_FLIP_HORIZ, ASI_FALSE);
-        } else if (reverseY && !reverseX) {
-            ASISetControlValue(cameraID, ASI_FLIP, ASI_FLIP_VERT, ASI_FALSE);
-        } else {
-            ASISetControlValue(cameraID, ASI_FLIP, ASI_FLIP_NONE, ASI_FALSE);
-        }
-    }
-
     status |= ADDriver::writeInt32(pasynUser, value);
     return (asynStatus)status;
 }
@@ -184,6 +163,23 @@ asynStatus ZWODriver::writeFloat64(asynUser *pasynUser, epicsFloat64 value) {
     return (asynStatus)status;
 }
 
+asynStatus ZWODriver::setReverse(int reverseX, int reverseY) {
+    int status = asynSuccess;
+    int reverse;
+    if (reverseX && reverseY) {
+        reverse = ASI_FLIP_BOTH;
+    } else if (reverseX && !reverseY) {
+        reverse = ASI_FLIP_HORIZ;
+    } else if (reverseY && !reverseX) {
+        reverse = ASI_FLIP_VERT;
+    } else {
+        reverse = ASI_FLIP_NONE;
+    }
+
+    status |= ASISetControlValue(cameraID, ASI_FLIP, reverse, ASI_FALSE);
+    return (asynStatus)status;
+}
+
 asynStatus ZWODriver::setROIFormat(ROIFormat_t *out) {
     int status = asynSuccess;
     int colorMode, dataType;
@@ -194,7 +190,7 @@ asynStatus ZWODriver::setROIFormat(ROIFormat_t *out) {
 
     int binX, binY, minX, minY, sizeX, sizeY, maxSizeX, maxSizeY;
     int imgWidth, imgHeight, imgBin, startX, startY;
-    __int128_t dataSize = 0;
+    int64_t dataSize = 0;
 
     status |= getIntegerParam(ADMinX, &minX);
     status |= getIntegerParam(ADMinY, &minY);
@@ -202,9 +198,6 @@ asynStatus ZWODriver::setROIFormat(ROIFormat_t *out) {
     status |= getIntegerParam(ADSizeY, &sizeY);
     status |= getIntegerParam(ADBinX, &binX);
     status |= getIntegerParam(ADBinY, &binY);
-    // status |= getIntegerParam(NDArraySizeX, &imgWidth);
-    // status |= getIntegerParam(NDArraySizeY, &imgHeight);
-    // status |= setIntegerParam(NDArraySize, imgWidth * imgHeight * sizeof(epicsUInt8));
 
     maxSizeX = cameraInfo.MaxWidth;
     maxSizeY = cameraInfo.MaxHeight;
@@ -272,26 +265,8 @@ asynStatus ZWODriver::setROIFormat(ROIFormat_t *out) {
     startX = minX / binX;
     startY = minY / binY;
 
-    if (dataType == NDUInt8) {
-        dataSize = imgWidth*imgHeight*sizeof(epicsUInt8);
-    } else if (dataType == NDUInt16) {
-        dataSize = imgWidth*imgHeight*sizeof(epicsUInt16);
-    }
-
-    printf("imgWidth: %d, imgHeight: %d, dataSize: %ld\n", imgWidth, imgHeight, dataSize);
-
-    if (imgWidth % 8 != 0) {
-        imgWidth -= (imgWidth % 8);
-        status |= setIntegerParam(ADSizeX, imgWidth * binX);
-    }
-    if (imgHeight % 2 != 0) {
-        imgHeight -= (imgHeight % 8);
-        status |= setIntegerParam(ADSizeY, imgHeight * binY);
-    }
-
     status |= setIntegerParam(NDArraySizeX, imgWidth);
     status |= setIntegerParam(NDArraySizeY, imgHeight);
-    status |= setIntegerParam(NDArraySize, dataSize);
 
     status |= ASISetROIFormat(cameraID, imgWidth, imgHeight, imgBin, imgType);
     status |= ASISetStartPos(cameraID, startX, startY);
@@ -371,7 +346,7 @@ asynStatus ZWODriver::connectCamera() {
     }
 
     // Set some initial values for various parameters
-    status = setStringParam(ADManufacturer, "ZWO");
+    status |= setStringParam(ADManufacturer, "ZWO");
     status |= setStringParam(ADModel, cameraInfo.Name);
     status |= setStringParam(ADSerialNumber, "N/A");
     status |= setStringParam(ADFirmwareVersion, "N/A");
@@ -384,7 +359,6 @@ asynStatus ZWODriver::connectCamera() {
     status |= setIntegerParam(ADMaxSizeY, cameraInfo.MaxHeight);
     status |= setIntegerParam(NDArraySizeX, cameraInfo.MaxWidth);
     status |= setIntegerParam(NDArraySizeY, cameraInfo.MaxHeight);
-    // status |= setIntegerParam(NDArraySize, cameraInfo.MaxWidth * cameraInfo.MaxHeight * sizeof(epicsUInt8));
 
     if (status) {
         asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
@@ -471,6 +445,11 @@ void ZWODriver::captureTask() {
         status = asynSuccess;
         status |= setROIFormat(&roiFormat);
 
+        int reverseX, reverseY;
+        status |= getIntegerParam(ADReverseX, &reverseX);
+        status |= getIntegerParam(ADReverseY, &reverseY);
+        status |= setReverse(reverseX, reverseY);
+
         if (status != 0) {
             acquire = 0;
             setIntegerParam(ADAcquire, 0);
@@ -555,6 +534,8 @@ void ZWODriver::captureTask() {
 
             ASIGetDataAfterExp(cameraID, (unsigned char *)pImage->pData,
                                pImage->dataSize);
+
+            setIntegerParam(NDArraySize, pImage->dataSize);
 
             this->getAttributes(pImage->pAttributeList);
             

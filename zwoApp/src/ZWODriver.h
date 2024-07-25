@@ -59,6 +59,7 @@ private:
     asynStatus setROIFormat(ROIFormat_t *out);
     asynStatus connectCamera();
     asynStatus disconnectCamera();
+    asynStatus setReverse(int reverseX, int reverseY);
 
 protected:
     int ADOffset;
