@@ -11,6 +11,7 @@
 #define SHORT_WAIT (0.00025)
 
 #define ADOffsetString "OFFSET"
+#define ADTimeRemainingString "TIME_REMAINING"
 
 typedef struct ROIFormat {
     NDColorMode_t colorMode;
@@ -63,6 +64,7 @@ private:
 
 protected:
     int ADOffset;
+    int ADTimeRemaining;
 };
 
 #endif

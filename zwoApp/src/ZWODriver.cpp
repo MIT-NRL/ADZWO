@@ -20,7 +20,7 @@
 #include <iocsh.h>
 
 static const char *driverName = "ZWODriver";
-static const char *driverVersion = "0.1.1";
+static const char *driverVersion = "0.2.0";
 
 static void ZWODriverCaptureTaskC(void *drvPvt) {
     ZWODriver *driver = (ZWODriver *)drvPvt;
@@ -40,6 +40,8 @@ ZWODriver::ZWODriver(const char *portName, int maxBuffers, size_t maxMemory,
                priority, stackSize) {
 
     createParam(ADOffsetString, asynParamFloat64, &ADOffset);
+    createParam(ADTimeRemainingString, asynParamFloat64,
+                &ADTimeRemaining);
 
     printf("\n\n\n\n\n");
 
@@ -414,7 +416,9 @@ void ZWODriver::captureTask() {
     int imageMode;
     int acquire = 0;
     int arrayCallbacks;
-    epicsTimeStamp startTime, endTime;
+    double acquireTime;
+    double timeRemaining;
+    epicsTimeStamp startTime, endTime, currentTime;
     double acquirePeriod;
 
     ASI_EXPOSURE_STATUS exposureStatus;
@@ -431,6 +435,8 @@ void ZWODriver::captureTask() {
         if (!acquire) {
             this->unlock();
             bool signal = this->startEvent->wait(1);
+            if (!status) 
+                setStringParam(ADStatusMessage, "Idle");
             this->lock();
 
             if (!signal)
@@ -439,7 +445,7 @@ void ZWODriver::captureTask() {
             setIntegerParam(ADNumImagesCounter, 0);
         }
 
-        epicsTimeGetCurrent(&startTime);
+        getDoubleParam(ADAcquireTime, &acquireTime);
 
         // Send parameters to camera
         status = asynSuccess;
@@ -449,6 +455,8 @@ void ZWODriver::captureTask() {
         status |= getIntegerParam(ADReverseX, &reverseX);
         status |= getIntegerParam(ADReverseY, &reverseY);
         status |= setReverse(reverseX, reverseY);
+
+        epicsTimeGetCurrent(&startTime);
 
         if (status != 0) {
             acquire = 0;
@@ -469,16 +477,30 @@ void ZWODriver::captureTask() {
         if (ASIStartExposure(cameraID, ASI_FALSE)) {
             // FAILED
             setIntegerParam(ADStatus, ADStatusError);
+            setStringParam(ADStatusMessage, "Failed to start exposure");
             callParamCallbacks();
             continue;
         }
 
+        setStringParam(ADStatusMessage, "Waiting for exposure");
         setIntegerParam(ADStatus, ADStatusAcquire);
         callParamCallbacks();
 
         // Wait until image has been acquired
         while (!ASIGetExpStatus(cameraID, &exposureStatus) &&
                exposureStatus == ASI_EXP_WORKING) {
+            
+            // Calculate time remaining
+            epicsTimeGetCurrent(&currentTime);
+            timeRemaining =
+                acquireTime - epicsTimeDiffInSeconds(&currentTime, &startTime);
+            if (timeRemaining < 0) {
+                timeRemaining = 0;
+            }
+
+            setDoubleParam(ADTimeRemaining, timeRemaining);
+            callParamCallbacks();
+
             this->unlock();
             bool s = this->stopEvent->wait(SHORT_WAIT);
             this->lock();
@@ -494,6 +516,7 @@ void ZWODriver::captureTask() {
                 } else {
                     setIntegerParam(ADStatus, ADStatusAborted);
                 }
+                setDoubleParam(ADTimeRemaining, 0);
                 callParamCallbacks();
                 continue;
             }
@@ -512,6 +535,7 @@ void ZWODriver::captureTask() {
             imageCounter++;
             setIntegerParam(NDArrayCounter, imageCounter);
             setIntegerParam(ADNumImagesCounter, numImagesCounter);
+            setStringParam(ADStatusMessage, "Transfering image");
 
             // Allocate pImage and read data from camera
             NDArray *pImage;

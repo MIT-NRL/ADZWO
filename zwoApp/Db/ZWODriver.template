@@ -21,3 +21,11 @@ record(ai, "$(P)$(R)Offset_RBV")
    field(PREC, "3")
    field(SCAN, "I/O Intr")
 }
+
+record(ai, "$(P)$(R)TimeRemaining_RBV")
+{
+   field(DTYP, "asynFloat64")
+   field(INP,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))TIME_REMAINING")
+   field(PREC, "3")
+   field(SCAN, "I/O Intr")
+}
