@@ -11,8 +11,8 @@
 #define SHORT_WAIT (0.00025)
 
 #define ADOffsetString "OFFSET"
-#define ADTimeRemainingString "TIME_REMAINING"
 #define ADCoolerPowerPercString "COOLER_POWER_PERC"
+#define ADSensorPixelSizeString "SENSOR_PIXEL_SIZE"
 
 typedef struct ROIFormat {
     NDColorMode_t colorMode;
@@ -78,8 +78,8 @@ private:
 
 protected:
     int ADOffset;
-    int ADTimeRemaining;
     int ADCoolerPowerPerc;
+    int ADSensorPixelSize;
 };
 
 #endif

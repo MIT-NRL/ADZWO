@@ -40,10 +40,10 @@ ZWODriver::ZWODriver(const char *portName, int maxBuffers, size_t maxMemory,
                priority, stackSize) {
 
     createParam(ADOffsetString, asynParamFloat64, &ADOffset);
-    createParam(ADTimeRemainingString, asynParamFloat64,
-                &ADTimeRemaining);
     createParam(ADCoolerPowerPercString, asynParamInt32,
                 &ADCoolerPowerPerc);
+    createParam(ADSensorPixelSizeString, asynParamFloat64,
+                &ADSensorPixelSize);
 
     printf("\n\n\n\n\n");
 
@@ -398,6 +398,10 @@ asynStatus ZWODriver::connectCamera() {
     status |= setIntegerParam(NDArraySizeX, cameraInfo.MaxWidth);
     status |= setIntegerParam(NDArraySizeY, cameraInfo.MaxHeight);
 
+    status |= setDoubleParam(ADSensorPixelSize, cameraInfo.PixelSize);
+
+    callParamCallbacks();
+
     if (status) {
         asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
                   "%s:%s: unable to set camera parameters on camera %d\n",
@@ -430,6 +434,8 @@ asynStatus ZWODriver::connectCamera() {
                       driverName, __func__, cameraInfo.Name,
                       cameraInfo.CameraID, idString);
 
+    
+    
     return asynSuccess;
 }
 

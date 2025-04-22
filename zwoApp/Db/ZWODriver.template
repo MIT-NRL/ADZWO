@@ -22,17 +22,17 @@ record(ai, "$(P)$(R)Offset_RBV")
    field(SCAN, "I/O Intr")
 }
 
-record(ai, "$(P)$(R)TimeRemaining_RBV")
-{
-   field(DTYP, "asynFloat64")
-   field(INP,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))TIME_REMAINING")
-   field(PREC, "3")
-   field(SCAN, "I/O Intr")
-}
-
 record(longin, "$(P)$(R)CoolerPowerPerc_RBV")
 {
    field(DTYP, "asynInt32")
    field(INP,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))COOLER_POWER_PERC")
+   field(SCAN, "I/O Intr")
+}
+
+record(ai, "$(P)$(R)SensorPixelSize_RBV")
+{
+   field(DTYP, "asynFloat64")
+   field(INP,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))SENSOR_PIXEL_SIZE")
+   field(PREC, "3")
    field(SCAN, "I/O Intr")
 }
