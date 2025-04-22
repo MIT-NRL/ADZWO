@@ -29,3 +29,10 @@ record(ai, "$(P)$(R)TimeRemaining_RBV")
    field(PREC, "3")
    field(SCAN, "I/O Intr")
 }
+
+record(longin, "$(P)$(R)CoolerPowerPerc_RBV")
+{
+   field(DTYP, "asynInt32")
+   field(INP,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))COOLER_POWER_PERC")
+   field(SCAN, "I/O Intr")
+}

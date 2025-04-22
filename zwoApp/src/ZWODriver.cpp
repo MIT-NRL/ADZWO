@@ -42,6 +42,8 @@ ZWODriver::ZWODriver(const char *portName, int maxBuffers, size_t maxMemory,
     createParam(ADOffsetString, asynParamFloat64, &ADOffset);
     createParam(ADTimeRemainingString, asynParamFloat64,
                 &ADTimeRemaining);
+    createParam(ADCoolerPowerPercString, asynParamInt32,
+                &ADCoolerPowerPerc);
 
     printf("\n\n\n\n\n");
 
@@ -147,16 +149,36 @@ asynStatus ZWODriver::writeFloat64(asynUser *pasynUser, epicsFloat64 value) {
 
     if (function == ADAcquireTime) {
         long exposureTime = value * 1000 * 1000;
+        // Make sure exposure time cannot be negative or exceed max exposure
+        if (exposureTime > this->controlLimits.maxExposure)
+            exposureTime = this->controlLimits.maxExposure;
+        if (exposureTime < this->controlLimits.minExposure)
+            exposureTime = this->controlLimits.minExposure;
         status |=
             ASISetControlValue(cameraID, ASI_EXPOSURE, exposureTime, ASI_FALSE);
     } else if (function == ADGain) {
+        // Make sure gain cannot be negative or exceed max gain
+        if (value > this->controlLimits.maxGain)
+            value = this->controlLimits.maxGain;
+        if (value < this->controlLimits.minGain)
+            value = this->controlLimits.minGain;
         status |=
             ASISetControlValue(cameraID, ASI_GAIN, (long)value, ASI_FALSE);
     } else if (function == ADOffset) {
+        // Make sure offset cannot be negative or exceed max offset
+        if (value > this->controlLimits.maxOffset)
+            value = this->controlLimits.maxOffset;
+        if (value < this->controlLimits.minOffset)
+            value = this->controlLimits.minOffset;
         status |=
             ASISetControlValue(cameraID, ASI_OFFSET, (long)value, ASI_FALSE);
     } else if (function == ADTemperature) {
         int targetTemp = value;
+        // Make sure target temperature cannot be below min or above max
+        // if (targetTemp > this->controlLimits.maxTemp)
+        //     targetTemp = this->controlLimits.maxTemp;
+        // if (targetTemp < this->controlLimits.minTemp)
+        //     targetTemp = this->controlLimits.minTemp;
         status |= ASISetControlValue(cameraID, ASI_TARGET_TEMP, targetTemp,
                                      ASI_FALSE);
     }
@@ -346,6 +368,20 @@ asynStatus ZWODriver::connectCamera() {
                           driverName, __func__, caps.Name, caps.MinValue,
                           caps.MaxValue, caps.DefaultValue);
     }
+
+    ASI_CONTROL_CAPS caps;
+    ASIGetControlCaps(cameraID, ASI_GAIN, &caps);
+    this->controlLimits.minGain = caps.MinValue;
+    this->controlLimits.maxGain = caps.MaxValue;
+    ASIGetControlCaps(cameraID, ASI_OFFSET, &caps);
+    this->controlLimits.minOffset = caps.MinValue;
+    this->controlLimits.maxOffset = caps.MaxValue;
+    ASIGetControlCaps(cameraID, ASI_EXPOSURE, &caps);
+    this->controlLimits.minExposure = caps.MinValue;
+    this->controlLimits.maxExposure = caps.MaxValue;
+    // ASIGetControlCaps(cameraID, ASI_TARGET_TEMP, &caps);
+    // this->controlLimits.minTemp = caps.MinValue;
+    // this->controlLimits.maxTemp = caps.MaxValue;
 
     // Set some initial values for various parameters
     status |= setStringParam(ADManufacturer, "ZWO");
@@ -632,6 +668,11 @@ void ZWODriver::pollingTask() {
             ASI_SUCCESS) {
             double temperature = (double)(cValue) / 10.0;
             setDoubleParam(ADTemperatureActual, temperature);
+        }
+
+        if (ASIGetControlValue(cameraID, ASI_COOLER_POWER_PERC, &cValue,
+                             &cAuto) == ASI_SUCCESS) {
+            setIntegerParam(ADCoolerPowerPerc, (int)cValue);
         }
 
         callParamCallbacks();

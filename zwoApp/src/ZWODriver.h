@@ -12,6 +12,7 @@
 
 #define ADOffsetString "OFFSET"
 #define ADTimeRemainingString "TIME_REMAINING"
+#define ADCoolerPowerPercString "COOLER_POWER_PERC"
 
 typedef struct ROIFormat {
     NDColorMode_t colorMode;
@@ -22,6 +23,18 @@ typedef struct ROIFormat {
     int imgBin;
     int startX, startY;
 } ROIFormat_t;
+
+typedef struct _ASI_CONTROL_LIMITS {
+    unsigned long minExposure;
+    unsigned long maxExposure;
+    unsigned int minGain;
+    unsigned int maxGain;
+    unsigned int minOffset;
+    unsigned int maxOffset;
+
+    int minTemp;
+    int maxTemp;
+} ASI_CONTROL_LIMITS;
 
 class ZWODriver : public ADDriver {
 public:
@@ -53,6 +66,7 @@ public:
 private:
     int cameraID;
     ASI_CAMERA_INFO cameraInfo;
+    ASI_CONTROL_LIMITS controlLimits;
 
     epicsEvent *startEvent;
     epicsEvent *stopEvent;
@@ -65,6 +79,7 @@ private:
 protected:
     int ADOffset;
     int ADTimeRemaining;
+    int ADCoolerPowerPerc;
 };
 
 #endif
