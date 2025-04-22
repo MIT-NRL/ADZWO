@@ -2571,7 +2571,7 @@
      <x>6</x>
      <y>460</y>
      <width>350</width>
-     <height>443</height>
+     <height>421</height>
     </rect>
    </property>
    <property name="toolTip">
@@ -3896,7 +3896,7 @@
   }</string>
    </property>
    <property name="text">
-    <string>Percent complete</string>
+    <string>Time Remaining</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -5005,7 +5005,7 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>PV: ${P}${R}PercentComplete_RBV</string>
+    <string>ca://${P}${R}TimeRemaining_RBV</string>
    </property>
    <property name="styleSheet">
     <string notr="true">PyDMLabel {
@@ -5020,7 +5020,7 @@
     <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
    </property>
    <property name="channel" stdset="0">
-    <string>ca://${P}${R}PercentComplete_RBV</string>
+    <string>ca://${P}${R}TimeRemaining_RBV</string>
    </property>
   </widget>
   <widget class="QLabel" name="text_55">
@@ -6096,7 +6096,7 @@
   }</string>
    </property>
    <property name="text">
-    <string>Power</string>
+    <string>Power Perc</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -6126,7 +6126,7 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>PV: ${P}${R}TriggerMode_RBV</string>
+    <string>ca://${P}${R}CoolerPowerPerc_RBV</string>
    </property>
    <property name="styleSheet">
     <string notr="true">PyDMLabel{
@@ -6141,7 +6141,7 @@
     <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
    </property>
    <property name="channel" stdset="0">
-    <string>ca://${P}${R}TEPower_RBV</string>
+    <string>ca://${P}${R}CoolerPowerPerc_RBV</string>
    </property>
    <property name="displayFormat" stdset="0">
     <enum>PyDMLabel::String</enum>
@@ -6235,107 +6235,6 @@
    </property>
    <property name="text">
     <string>Offset</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-   </property>
-   <property name="brush" stdset="0">
-    <brush brushstyle="SolidPattern">
-     <color alpha="255">
-      <red>0</red>
-      <green>0</green>
-      <blue>0</blue>
-     </color>
-    </brush>
-   </property>
-  </widget>
-  <widget class="PyDMLabel" name="text_update_49">
-   <property name="geometry">
-    <rect>
-     <x>242</x>
-     <y>872</y>
-     <width>79</width>
-     <height>18</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-   <property name="toolTip">
-    <string>PV: ${P}${R}ReadMode_RBV</string>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">PyDMLabel {
-  color: rgb(10, 0, 184);
-  background-color: rgb(187, 187, 187);
-  }</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignCenter</set>
-   </property>
-   <property name="textInteractionFlags">
-    <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
-   </property>
-   <property name="channel" stdset="0">
-    <string>ca://${P}${R}ReadMode_RBV</string>
-   </property>
-   <property name="displayFormat" stdset="0">
-    <enum>PyDMLabel::String</enum>
-   </property>
-  </widget>
-  <widget class="PyDMEnumComboBox" name="menu_9">
-   <property name="geometry">
-    <rect>
-     <x>144</x>
-     <y>871</y>
-     <width>80</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-   <property name="toolTip">
-    <string>${P}${R}ReadMode</string>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">PyDMEnumComboBox{
-  color: rgb(0, 0, 0);
-  background-color: rgb(115, 223, 255);
-  }</string>
-   </property>
-   <property name="channel" stdset="0">
-    <string>ca://${P}${R}ReadMode</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="text_69">
-   <property name="geometry">
-    <rect>
-     <x>48</x>
-     <y>871</y>
-     <width>90</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-   <property name="toolTip">
-    <string>text_9</string>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">QLabel#text_9 {
-  color: rgb(0, 0, 0);
-  }</string>
-   </property>
-   <property name="text">
-    <string>Read Mode</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -6520,9 +6419,6 @@
   <zorder>text_update_48</zorder>
   <zorder>text_entry_15</zorder>
   <zorder>text_68</zorder>
-  <zorder>text_update_49</zorder>
-  <zorder>menu_9</zorder>
-  <zorder>text_69</zorder>
  </widget>
  <customwidgets>
   <customwidget>
