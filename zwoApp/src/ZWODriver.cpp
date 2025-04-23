@@ -284,8 +284,8 @@ asynStatus ZWODriver::setROIFormat(ROIFormat_t *out) {
         status |= setIntegerParam(ADSizeY, sizeY);
     }
 
-    imgWidth = (sizeX - minX) / binX;
-    imgHeight = (sizeY - minY) / binY;
+    imgWidth = sizeX / binX;
+    imgHeight = sizeY / binY;
     startX = minX / binX;
     startY = minY / binY;
 
