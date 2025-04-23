@@ -530,16 +530,23 @@ void ZWODriver::captureTask() {
         setIntegerParam(ADStatus, ADStatusAcquire);
         callParamCallbacks();
 
+        epicsTimeStamp lastUpdate;
+        epicsTimeGetCurrent(&lastUpdate);
+
         // Wait until image has been acquired
         while (!ASIGetExpStatus(cameraID, &exposureStatus) &&
                exposureStatus == ASI_EXP_WORKING) {
             
-            // Calculate time remaining
             epicsTimeGetCurrent(&currentTime);
-            timeRemaining =
-                acquireTime - epicsTimeDiffInSeconds(&currentTime, &startTime);
-            if (timeRemaining < 0) {
-                timeRemaining = 0;
+            double sinceLastUpdate = epicsTimeDiffInSeconds(&currentTime, &lastUpdate);
+            
+            // Lower the update frequency
+            if (sinceLastUpdate >= 0.01) { // update every 0.01 seconds
+                timeRemaining = acquireTime - epicsTimeDiffInSeconds(&currentTime, &startTime);
+                if (timeRemaining < 0) timeRemaining = 0;
+                setDoubleParam(ADTimeRemaining, timeRemaining);
+                callParamCallbacks();
+                lastUpdate = currentTime;
             }
 
             setDoubleParam(ADTimeRemaining, timeRemaining);
