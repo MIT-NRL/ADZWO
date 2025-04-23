@@ -500,8 +500,6 @@ void ZWODriver::captureTask() {
         status |= getIntegerParam(ADReverseY, &reverseY);
         status |= setReverse(reverseX, reverseY);
 
-        epicsTimeGetCurrent(&startTime);
-
         if (status != 0) {
             acquire = 0;
             setIntegerParam(ADAcquire, 0);
@@ -518,6 +516,8 @@ void ZWODriver::captureTask() {
         }
         this->lock();
 
+        epicsTimeGetCurrent(&startTime);
+
         if (ASIStartExposure(cameraID, ASI_FALSE)) {
             // FAILED
             setIntegerParam(ADStatus, ADStatusError);
@@ -525,6 +525,7 @@ void ZWODriver::captureTask() {
             callParamCallbacks();
             continue;
         }
+        
 
         setStringParam(ADStatusMessage, "Waiting for exposure");
         setIntegerParam(ADStatus, ADStatusAcquire);
@@ -572,6 +573,9 @@ void ZWODriver::captureTask() {
                 continue;
             }
         }
+
+        setDoubleParam(ADTimeRemaining, 0);
+        callParamCallbacks();
 
         getIntegerParam(NDArrayCounter, &imageCounter);
         getIntegerParam(ADNumImages, &numImages);
