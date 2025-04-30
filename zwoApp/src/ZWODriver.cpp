@@ -44,6 +44,8 @@ ZWODriver::ZWODriver(const char *portName, int maxBuffers, size_t maxMemory,
                 &ADCoolerPowerPerc);
     createParam(ADSensorPixelSizeString, asynParamFloat64,
                 &ADSensorPixelSize);
+    createParam(ADUSBBandwidthString, asynParamInt32,
+                &ADUSBBandwidth);
 
     printf("\n\n\n\n\n");
 
@@ -137,6 +139,23 @@ asynStatus ZWODriver::writeInt32(asynUser *pasynUser, epicsInt32 value) {
         if ((value != NDUInt8) && (value != NDUInt16)) {
             return asynError;
         }
+    }
+
+    if (function == ADUSBBandwidth) {
+        if (value > this->controlLimits.maxUSB)
+            value = this->controlLimits.maxUSB;
+        if (value < this->controlLimits.minUSB)
+            value = this->controlLimits.minUSB;
+        status |= ASISetControlValue(cameraID, ASI_BANDWIDTHOVERLOAD, value,
+                                     ASI_FALSE);
+        long bandwidthValue;
+        ASI_BOOL isAuto = ASI_FALSE; // Declare a variable for the fourth argument
+        ASIGetControlValue(cameraID, ASI_BANDWIDTHOVERLOAD, &bandwidthValue,
+                           &isAuto);
+        status |= setIntegerParam(ADUSBBandwidth, bandwidthValue);
+        status |= callParamCallbacks();
+        return (asynStatus)status;
+
     }
 
     status |= ADDriver::writeInt32(pasynUser, value);
@@ -405,6 +424,13 @@ asynStatus ZWODriver::connectCamera() {
     status |= setIntegerParam(NDArraySizeY, cameraInfo.MaxHeight);
 
     status |= setDoubleParam(ADSensorPixelSize, cameraInfo.PixelSize);
+
+    long bandwidthValue;
+    ASI_BOOL isAuto = ASI_FALSE; // Declare a variable for the fourth argument
+    ASIGetControlValue(cameraID, ASI_BANDWIDTHOVERLOAD, &bandwidthValue, &isAuto);
+    printf("Bandwidth overload: %ld\n, isAuto: %d\n", bandwidthValue, isAuto);
+
+    status |= setIntegerParam(ADUSBBandwidth, bandwidthValue);
 
     callParamCallbacks();
 

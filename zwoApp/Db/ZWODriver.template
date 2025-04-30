@@ -36,3 +36,19 @@ record(ai, "$(P)$(R)SensorPixelSize_RBV")
    field(PREC, "3")
    field(SCAN, "I/O Intr")
 }
+
+record(longout, "$(P)$(R)USBBandwidth")
+{
+    field(PINI, "YES")
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))USB_BANDWIDTH")
+    info(autosaveFields, "VAL")
+}
+
+record(longin, "$(P)$(R)USBBandwidth_RBV")
+{
+    field(DTYP, "asynInt32")
+    field(INP,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))USB_BANDWIDTH")
+    field(SCAN, "I/O Intr")
+}
+

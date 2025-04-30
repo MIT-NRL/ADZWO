@@ -13,6 +13,7 @@
 #define ADOffsetString "OFFSET"
 #define ADCoolerPowerPercString "COOLER_POWER_PERC"
 #define ADSensorPixelSizeString "SENSOR_PIXEL_SIZE"
+#define ADUSBBandwidthString "USB_BANDWIDTH"
 
 typedef struct ROIFormat {
     NDColorMode_t colorMode;
