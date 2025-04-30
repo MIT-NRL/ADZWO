@@ -173,13 +173,12 @@ asynStatus ZWODriver::writeFloat64(asynUser *pasynUser, epicsFloat64 value) {
         status |=
             ASISetControlValue(cameraID, ASI_OFFSET, (long)value, ASI_FALSE);
     } else if (function == ADTemperature) {
-        int targetTemp = value;
         // Make sure target temperature cannot be below min or above max
-        // if (targetTemp > this->controlLimits.maxTemp)
-        //     targetTemp = this->controlLimits.maxTemp;
-        // if (targetTemp < this->controlLimits.minTemp)
-        //     targetTemp = this->controlLimits.minTemp;
-        status |= ASISetControlValue(cameraID, ASI_TARGET_TEMP, targetTemp,
+        if (value > this->controlLimits.maxTemp)
+            value = this->controlLimits.maxTemp;
+        if (value < this->controlLimits.minTemp)
+            value = this->controlLimits.minTemp;
+        status |= ASISetControlValue(cameraID, ASI_TARGET_TEMP, value,
                                      ASI_FALSE);
     }
 
@@ -369,21 +368,26 @@ asynStatus ZWODriver::connectCamera() {
         epicsStdoutPrintf("%s:%s: Control %s, %ld-%ld, default %ld\n",
                           driverName, __func__, caps.Name, caps.MinValue,
                           caps.MaxValue, caps.DefaultValue);
-    }
 
-    ASI_CONTROL_CAPS caps;
-    ASIGetControlCaps(cameraID, ASI_GAIN, &caps);
+        if (caps.ControlType == ASI_GAIN) {
     this->controlLimits.minGain = caps.MinValue;
     this->controlLimits.maxGain = caps.MaxValue;
-    ASIGetControlCaps(cameraID, ASI_OFFSET, &caps);
+        } else if (caps.ControlType == ASI_OFFSET) {
     this->controlLimits.minOffset = caps.MinValue;
     this->controlLimits.maxOffset = caps.MaxValue;
-    ASIGetControlCaps(cameraID, ASI_EXPOSURE, &caps);
+        } else if (caps.ControlType == ASI_EXPOSURE) {
     this->controlLimits.minExposure = caps.MinValue;
     this->controlLimits.maxExposure = caps.MaxValue;
-    // ASIGetControlCaps(cameraID, ASI_TARGET_TEMP, &caps);
-    // this->controlLimits.minTemp = caps.MinValue;
-    // this->controlLimits.maxTemp = caps.MaxValue;
+        } else if (caps.ControlType == ASI_TARGET_TEMP) {
+            this->controlLimits.minTemp = caps.MinValue;
+            this->controlLimits.maxTemp = caps.MaxValue;
+            printf("Min temp: %ld, max temp: %ld\n", this->controlLimits.minTemp,
+                   this->controlLimits.maxTemp);
+        } else if (caps.ControlType == ASI_BANDWIDTHOVERLOAD) {
+            this->controlLimits.minUSB = caps.MinValue;
+            this->controlLimits.maxUSB = caps.MaxValue;
+        }
+    }
 
     // Set some initial values for various parameters
     status |= setStringParam(ADManufacturer, "ZWO");

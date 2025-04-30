@@ -19,21 +19,23 @@ typedef struct ROIFormat {
     NDDataType_t dataType;
     ASI_IMG_TYPE imgType;
 
-    int imgWidth, imgHeight;
-    int imgBin;
-    int startX, startY;
+    long imgWidth, imgHeight;
+    long imgBin;
+    long startX, startY;
 } ROIFormat_t;
 
 typedef struct _ASI_CONTROL_LIMITS {
     unsigned long minExposure;
     unsigned long maxExposure;
-    unsigned int minGain;
-    unsigned int maxGain;
-    unsigned int minOffset;
-    unsigned int maxOffset;
+    unsigned long minGain;
+    unsigned long maxGain;
+    unsigned long minOffset;
+    unsigned long maxOffset;
+    unsigned long minUSB;
+    unsigned long maxUSB;
 
-    int minTemp;
-    int maxTemp;
+    long minTemp;
+    long maxTemp;
 } ASI_CONTROL_LIMITS;
 
 class ZWODriver : public ADDriver {
