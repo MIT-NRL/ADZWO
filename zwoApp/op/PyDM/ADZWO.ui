@@ -6277,6 +6277,108 @@
     <string>ca://${P}${R}USBBandwidth_RBV</string>
    </property>
   </widget>
+  <widget class="QLabel" name="text_71">
+   <property name="geometry">
+    <rect>
+     <x>44</x>
+     <y>270</y>
+     <width>130</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="toolTip">
+    <string>text</string>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">QLabel#text {
+  color: rgb(0, 0, 0);
+  }</string>
+   </property>
+   <property name="text">
+    <string>USB Bandwidth Auto</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+   <property name="brush" stdset="0">
+    <brush brushstyle="SolidPattern">
+     <color alpha="255">
+      <red>0</red>
+      <green>0</green>
+      <blue>0</blue>
+     </color>
+    </brush>
+   </property>
+  </widget>
+  <widget class="PyDMEnumComboBox" name="menu_9">
+   <property name="geometry">
+    <rect>
+     <x>178</x>
+     <y>271</y>
+     <width>65</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="toolTip">
+    <string>ca://${P}${R}USBBandwidthAuto</string>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">PyDMEnumComboBox
+{
+  color: rgb(0, 0, 0);
+  background-color: rgb(115, 223, 255);
+  }</string>
+   </property>
+   <property name="channel" stdset="0">
+    <string>ca://${P}${R}USBBandwidthAuto</string>
+   </property>
+  </widget>
+  <widget class="PyDMLabel" name="text_update_51">
+   <property name="geometry">
+    <rect>
+     <x>244</x>
+     <y>270</y>
+     <width>79</width>
+     <height>18</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="toolTip">
+    <string>ca://${P}${R}USBBandwidthAuto_RBV</string>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">PyDMLabel {
+  color: rgb(10, 0, 184);
+  background-color: rgb(187, 187, 187);
+  }</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+   </property>
+   <property name="textInteractionFlags">
+    <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+   </property>
+   <property name="channel" stdset="0">
+    <string>ca://${P}${R}USBBandwidthAuto_RBV</string>
+   </property>
+   <property name="displayFormat" stdset="0">
+    <enum>PyDMLabel::String</enum>
+   </property>
+  </widget>
   <zorder>rectangle_1</zorder>
   <zorder>rectangle_13</zorder>
   <zorder>text_update_46</zorder>
@@ -6448,6 +6550,9 @@
   <zorder>text_70</zorder>
   <zorder>text_entry_16</zorder>
   <zorder>text_update_50</zorder>
+  <zorder>text_71</zorder>
+  <zorder>menu_9</zorder>
+  <zorder>text_update_51</zorder>
  </widget>
  <customwidgets>
   <customwidget>
