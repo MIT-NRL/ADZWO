@@ -14,6 +14,7 @@
 #define ADCoolerPowerPercString "COOLER_POWER_PERC"
 #define ADSensorPixelSizeString "SENSOR_PIXEL_SIZE"
 #define ADUSBBandwidthString "USB_BANDWIDTH"
+#define ADUSBBandwidthAutoString "USB_BANDWIDTH_AUTO"
 
 typedef struct ROIFormat {
     NDColorMode_t colorMode;
@@ -84,6 +85,7 @@ protected:
     int ADCoolerPowerPerc;
     int ADSensorPixelSize;
     int ADUSBBandwidth;
+    int ADUSBBandwidthAuto;
 };
 
 #endif

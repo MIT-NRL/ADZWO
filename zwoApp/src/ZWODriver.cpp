@@ -46,6 +46,8 @@ ZWODriver::ZWODriver(const char *portName, int maxBuffers, size_t maxMemory,
                 &ADSensorPixelSize);
     createParam(ADUSBBandwidthString, asynParamInt32,
                 &ADUSBBandwidth);
+    createParam(ADUSBBandwidthAutoString, asynParamInt32,
+                &ADUSBBandwidthAuto);
 
     printf("\n\n\n\n\n");
 
@@ -142,6 +144,15 @@ asynStatus ZWODriver::writeInt32(asynUser *pasynUser, epicsInt32 value) {
     }
 
     if (function == ADUSBBandwidth) {
+        int autoMode;
+        getIntegerParam(ADUSBBandwidthAuto, &autoMode);
+        if (autoMode) {
+            // Optionally log or set a status message
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
+                      "%s:%s: Cannot set USB bandwidth in auto mode\n",
+                      driverName, __func__);
+            return asynDisabled; // Ignore or reject in auto mode
+        }
         if (value > this->controlLimits.maxUSB)
             value = this->controlLimits.maxUSB;
         if (value < this->controlLimits.minUSB)
@@ -153,9 +164,25 @@ asynStatus ZWODriver::writeInt32(asynUser *pasynUser, epicsInt32 value) {
         ASIGetControlValue(cameraID, ASI_BANDWIDTHOVERLOAD, &bandwidthValue,
                            &isAuto);
         status |= setIntegerParam(ADUSBBandwidth, bandwidthValue);
+        status |= setIntegerParam(ADUSBBandwidthAuto, (int)isAuto);
         status |= callParamCallbacks();
         return (asynStatus)status;
 
+    }
+
+    if (function == ADUSBBandwidthAuto) {
+        ASI_BOOL autoMode = (value != 0) ? ASI_TRUE : ASI_FALSE;
+        long bandwidthValue;
+        ASI_BOOL isAuto = ASI_FALSE;
+        ASIGetControlValue(cameraID, ASI_BANDWIDTHOVERLOAD, &bandwidthValue, &isAuto);
+    
+        status |= ASISetControlValue(cameraID, ASI_BANDWIDTHOVERLOAD, bandwidthValue, autoMode);
+
+        // Update the parameter and callbacks
+        status |= setIntegerParam(ADUSBBandwidthAuto, (int)autoMode);
+        status |= callParamCallbacks();
+    
+        return (asynStatus)status;
     }
 
     status |= ADDriver::writeInt32(pasynUser, value);
@@ -723,6 +750,13 @@ void ZWODriver::pollingTask() {
                              &cAuto) == ASI_SUCCESS) {
             setIntegerParam(ADCoolerPowerPerc, (int)cValue);
         }
+
+        if (ASIGetControlValue(cameraID, ASI_BANDWIDTHOVERLOAD, &cValue,
+                             &cAuto) == ASI_SUCCESS) {
+            setIntegerParam(ADUSBBandwidth, (int)cValue);
+        }
+
+
 
         callParamCallbacks();
         unlock();

@@ -52,3 +52,22 @@ record(longin, "$(P)$(R)USBBandwidth_RBV")
     field(SCAN, "I/O Intr")
 }
 
+record(bo, "$(P)$(R)USBBandwidthAuto")
+{
+    field(PINI, "YES")
+    field(DTYP, "asynInt32")
+    field(ZNAM, "Manual")
+    field(ONAM, "Auto")
+    field(OUT,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))USB_BANDWIDTH_AUTO")
+    info(autosaveFields, "VAL")
+}
+
+record(bi, "$(P)$(R)USBBandwidthAuto_RBV")
+{
+    field(DTYP, "asynInt32")
+    field(ZNAM, "Manual")
+    field(ONAM, "Auto")
+    field(INP,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))USB_BANDWIDTH_AUTO")
+    field(SCAN, "I/O Intr")
+}
+
