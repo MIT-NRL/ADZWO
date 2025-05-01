@@ -6218,7 +6218,7 @@
     <rect>
      <x>179</x>
      <y>246</y>
-     <width>60</width>
+     <width>75</width>
      <height>20</height>
     </rect>
    </property>
@@ -6247,7 +6247,7 @@
   <widget class="PyDMLabel" name="text_update_50">
    <property name="geometry">
     <rect>
-     <x>244</x>
+     <x>264</x>
      <y>247</y>
      <width>80</width>
      <height>18</height>
@@ -6281,7 +6281,7 @@
    <property name="geometry">
     <rect>
      <x>44</x>
-     <y>270</y>
+     <y>272</y>
      <width>130</width>
      <height>20</height>
     </rect>
@@ -6319,8 +6319,8 @@
    <property name="geometry">
     <rect>
      <x>178</x>
-     <y>271</y>
-     <width>65</width>
+     <y>273</y>
+     <width>75</width>
      <height>20</height>
     </rect>
    </property>
@@ -6346,8 +6346,8 @@
   <widget class="PyDMLabel" name="text_update_51">
    <property name="geometry">
     <rect>
-     <x>244</x>
-     <y>270</y>
+     <x>264</x>
+     <y>272</y>
      <width>79</width>
      <height>18</height>
     </rect>
