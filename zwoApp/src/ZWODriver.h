@@ -83,6 +83,7 @@ protected:
     int ADOffset;
     int ADCoolerPowerPerc;
     int ADSensorPixelSize;
+    int ADUSBBandwidth;
 };
 
 #endif
