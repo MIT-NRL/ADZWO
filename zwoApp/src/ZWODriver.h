@@ -89,10 +89,12 @@ private:
     asynStatus checkCameraConnection(const char *operation,
                                      bool *didReconnect = NULL);
     asynStatus applyCachedSettingsToCamera();
+    asynStatus normalizeROI(ROIFormat_t *out, bool applyToCamera);
     asynStatus setROIFormat(ROIFormat_t *out);
     asynStatus connectCamera();
     asynStatus disconnectCamera(const char *statusMessage = "Disconnected");
     asynStatus setReverse(int reverseX, int reverseY);
+    int nearestSupportedBin(int requestedBin) const;
 
 protected:
     int ADOffset;

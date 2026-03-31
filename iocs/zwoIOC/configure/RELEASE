@@ -4,6 +4,12 @@
 
 ADZWO = $(TOP)/../..
 
+# Reuse the parent module's support locations so this IOC can be
+# built and booted standalone from an ADZWO checkout.
+-include $(TOP)/../../configure/RELEASE.local
+
+BUSY = $(SUPPORT)/busy-R1-7-4
+
 -include $(TOP)/../../../configure/RELEASE_PRODS_INCLUDE
 -include $(TOP)/RELEASE.local
 -include $(TOP)/configure/RELEASE.local

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>715</width>
-    <height>955</height>
+    <height>930</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -71,9 +71,6 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text</string>
-   </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text {
   color: rgb(10, 0, 184);
@@ -108,9 +105,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_4</string>
    </property>
    <property name="styleSheet">
     <string notr="true">PyDMLabel {
@@ -185,14 +179,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_1</string>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">QLabel#text_1 {
-  color: rgb(0, 0, 0);
-  }</string>
    </property>
    <property name="text">
     <string>Debugging</string>
@@ -307,12 +293,10 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_14</string>
-   </property>
    <property name="styleSheet">
-    <string notr="true">QLabel#text_14 {
+    <string notr="true">QLabel {
   color: rgb(10, 0, 184);
+  background-color: rgb(187, 187, 187);
   }</string>
    </property>
    <property name="text">
@@ -345,11 +329,8 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text</string>
-   </property>
    <property name="styleSheet">
-    <string notr="true">QLabel#text {
+    <string notr="true">QLabel {
   color: rgb(10, 0, 184);
   }</string>
    </property>
@@ -452,14 +433,6 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_6</string>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">QLabel#text_6 {
-  color: rgb(0, 0, 0);
-  }</string>
-   </property>
    <property name="text">
     <string>Manufacturer</string>
    </property>
@@ -489,14 +462,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_5</string>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">QLabel#text_5 {
-  color: rgb(0, 0, 0);
-  }</string>
    </property>
    <property name="text">
     <string>EPICS name</string>
@@ -563,9 +528,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_2</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_2 {
@@ -637,14 +599,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_11</string>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">QLabel#text_11 {
-  color: rgb(0, 0, 0);
-  }</string>
    </property>
    <property name="text">
     <string>SDK version</string>
@@ -747,9 +701,6 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_3</string>
-   </property>
    <property name="styleSheet">
     <string notr="true">PyDMLabel {
   color: rgb(40, 147, 21);
@@ -787,14 +738,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_8</string>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">QLabel#text_8 {
-  color: rgb(0, 0, 0);
-  }</string>
    </property>
    <property name="text">
     <string>Model</string>
@@ -898,9 +841,6 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_7</string>
-   </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_7 {
   color: rgb(0, 0, 0);
@@ -936,9 +876,6 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_12</string>
-   </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_12 {
   color: rgb(0, 0, 0);
@@ -973,9 +910,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_13</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_13 {
@@ -1098,9 +1032,6 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_2</string>
-   </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_2 {
   color: rgb(0, 0, 0);
@@ -1136,11 +1067,8 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_1</string>
-   </property>
    <property name="styleSheet">
-    <string notr="true">QLabel#text_1 {
+    <string notr="true">QLabel {
   color: rgb(10, 0, 184);
   }</string>
    </property>
@@ -1392,9 +1320,6 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text</string>
-   </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text {
   color: rgb(0, 0, 0);
@@ -1490,9 +1415,6 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_3</string>
-   </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_3 {
   color: rgb(0, 0, 0);
@@ -1527,9 +1449,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_4</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_4 {
@@ -1751,9 +1670,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_5</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_5 {
@@ -2037,9 +1953,6 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_11</string>
-   </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_11 {
   color: rgb(0, 0, 0);
@@ -2075,9 +1988,6 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_11</string>
-   </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_11 {
   color: rgb(0, 0, 0);
@@ -2085,44 +1995,6 @@
    </property>
    <property name="text">
     <string>High speed</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-   </property>
-   <property name="brush" stdset="0">
-    <brush brushstyle="SolidPattern">
-     <color alpha="255">
-      <red>0</red>
-      <green>0</green>
-      <blue>0</blue>
-     </color>
-    </brush>
-   </property>
-  </widget>
-  <widget class="QLabel" name="text_22c">
-   <property name="geometry">
-    <rect>
-     <x>28</x>
-     <y>921</y>
-     <width>110</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-   <property name="toolTip">
-    <string>text_11</string>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">QLabel#text_11 {
-  color: rgb(0, 0, 0);
-  }</string>
-   </property>
-   <property name="text">
-    <string>Capture mode</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -2151,11 +2023,8 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text</string>
-   </property>
    <property name="styleSheet">
-    <string notr="true">QLabel#text {
+    <string notr="true">QLabel {
   color: rgb(10, 0, 184);
   }</string>
    </property>
@@ -2360,9 +2229,6 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_9</string>
-   </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_9 {
   color: rgb(0, 0, 0);
@@ -2431,9 +2297,6 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_6</string>
-   </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_6 {
   color: rgb(0, 0, 0);
@@ -2469,9 +2332,6 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_12</string>
-   </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_12 {
   color: rgb(0, 0, 0);
@@ -2499,7 +2359,7 @@
      <x>6</x>
      <y>460</y>
      <width>350</width>
-     <height>490</height>
+     <height>465</height>
     </rect>
    </property>
    <property name="toolTip">
@@ -2673,9 +2533,6 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_4</string>
-   </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_4 {
   color: rgb(0, 0, 0);
@@ -2802,42 +2659,6 @@
     <enum>PyDMLabel::String</enum>
    </property>
   </widget>
-  <widget class="PyDMLabel" name="text_update_19c">
-   <property name="geometry">
-    <rect>
-     <x>242</x>
-     <y>922</y>
-     <width>79</width>
-     <height>18</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-   <property name="toolTip">
-    <string>PV: ${P}${R}VideoMode_RBV</string>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">PyDMLabel {
-  color: rgb(10, 0, 184);
-  background-color: rgb(187, 187, 187);
-  }</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignCenter</set>
-   </property>
-   <property name="textInteractionFlags">
-    <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
-   </property>
-   <property name="channel" stdset="0">
-    <string>ca://${P}${R}VideoMode_RBV</string>
-   </property>
-   <property name="displayFormat" stdset="0">
-    <enum>PyDMLabel::String</enum>
-   </property>
-  </widget>
   <widget class="QLabel" name="text_28">
    <property name="geometry">
     <rect>
@@ -2851,9 +2672,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_10</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_10 {
@@ -2890,9 +2708,6 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_3</string>
-   </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_3 {
   color: rgb(0, 0, 0);
@@ -2927,9 +2742,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_2</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_2 {
@@ -2999,9 +2811,6 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_7</string>
-   </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_7 {
   color: rgb(0, 0, 0);
@@ -3070,9 +2879,6 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_8</string>
-   </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_8 {
   color: rgb(0, 0, 0);
@@ -3107,9 +2913,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_1</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_1 {
@@ -3219,33 +3022,6 @@
     <string>ca://${P}${R}HighSpeedMode</string>
    </property>
   </widget>
-  <widget class="PyDMEnumComboBox" name="menu_3c">
-   <property name="geometry">
-    <rect>
-     <x>144</x>
-     <y>921</y>
-     <width>80</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-   <property name="toolTip">
-    <string>${P}${R}VideoMode</string>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">PyDMEnumComboBox#menu_3c {
-  color: rgb(0, 0, 0);
-  background-color: rgb(115, 223, 255);
-  }</string>
-   </property>
-   <property name="channel" stdset="0">
-    <string>ca://${P}${R}VideoMode</string>
-   </property>
-  </widget>
   <widget class="PyDMLabel" name="text_update_23">
    <property name="geometry">
     <rect>
@@ -3286,7 +3062,7 @@
    <property name="geometry">
     <rect>
      <x>478</x>
-     <y>794</y>
+     <y>769</y>
      <width>105</width>
      <height>21</height>
     </rect>
@@ -3324,7 +3100,7 @@
    <property name="geometry">
     <rect>
      <x>503</x>
-     <y>862</y>
+     <y>837</y>
      <width>80</width>
      <height>18</height>
     </rect>
@@ -3335,7 +3111,7 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>PV: ${P}${R}TriggerMode_RBV</string>
+    <string>PV: ${P}${R}TemperatureActual</string>
    </property>
    <property name="styleSheet">
     <string notr="true">PyDMLabel{
@@ -3360,7 +3136,7 @@
    <property name="geometry">
     <rect>
      <x>358</x>
-     <y>792</y>
+     <y>767</y>
      <width>350</width>
      <height>127</height>
     </rect>
@@ -3398,7 +3174,7 @@
    <property name="geometry">
     <rect>
      <x>368</x>
-     <y>862</y>
+     <y>837</y>
      <width>130</width>
      <height>20</height>
     </rect>
@@ -3407,9 +3183,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text {
@@ -3436,7 +3209,7 @@
    <property name="geometry">
     <rect>
      <x>490</x>
-     <y>795</y>
+     <y>770</y>
      <width>80</width>
      <height>20</height>
     </rect>
@@ -3446,11 +3219,8 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_8</string>
-   </property>
    <property name="styleSheet">
-    <string notr="true">QLabel#text_8 {
+    <string notr="true">QLabel {
   color: rgb(10, 0, 184);
   }</string>
    </property>
@@ -3474,7 +3244,7 @@
    <property name="geometry">
     <rect>
      <x>503</x>
-     <y>832</y>
+     <y>807</y>
      <width>60</width>
      <height>20</height>
     </rect>
@@ -3505,7 +3275,7 @@
    <property name="geometry">
     <rect>
      <x>568</x>
-     <y>833</y>
+     <y>808</y>
      <width>80</width>
      <height>18</height>
     </rect>
@@ -3541,7 +3311,7 @@
    <property name="geometry">
     <rect>
      <x>368</x>
-     <y>832</y>
+     <y>807</y>
      <width>130</width>
      <height>20</height>
     </rect>
@@ -3550,9 +3320,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text {
@@ -3579,7 +3346,7 @@
    <property name="geometry">
     <rect>
      <x>603</x>
-     <y>441</y>
+     <y>416</y>
      <width>80</width>
      <height>18</height>
     </rect>
@@ -3612,7 +3379,7 @@
    <property name="geometry">
     <rect>
      <x>373</x>
-     <y>315</y>
+     <y>290</y>
      <width>160</width>
      <height>20</height>
     </rect>
@@ -3621,9 +3388,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_18</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_18 {
@@ -3650,7 +3414,7 @@
    <property name="geometry">
     <rect>
      <x>605</x>
-     <y>265</y>
+     <y>240</y>
      <width>59</width>
      <height>20</height>
     </rect>
@@ -3683,7 +3447,7 @@
    <property name="geometry">
     <rect>
      <x>538</x>
-     <y>440</y>
+     <y>415</y>
      <width>60</width>
      <height>20</height>
     </rect>
@@ -3714,7 +3478,7 @@
    <property name="geometry">
     <rect>
      <x>383</x>
-     <y>190</y>
+     <y>165</y>
      <width>100</width>
      <height>20</height>
     </rect>
@@ -3723,9 +3487,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_9</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_9 {
@@ -3761,9 +3522,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_2</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_2 {
@@ -3817,37 +3575,6 @@
     <string>ca://${P}${R}AcquirePeriod</string>
    </property>
   </widget>
-  <widget class="PyDMLineEdit" name="text_entry_10">
-   <property name="geometry">
-    <rect>
-     <x>538</x>
-     <y>165</y>
-     <width>60</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-   <property name="toolTip">
-    <string>${P}${R}NumExposures</string>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">PyDMLineEdit {
-  color: rgb(0, 0, 0);
-  background-color: rgb(115, 223, 255);
-  border: 1px solid black;
-  margin: 0px;
-  padding: 0px;
-  spacing: 0px;
-  }</string>
-   </property>
-   <property name="channel" stdset="0">
-    <string>ca://${P}${R}NumExposures</string>
-   </property>
-  </widget>
   <widget class="QLabel" name="text_40">
    <property name="geometry">
     <rect>
@@ -3861,9 +3588,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text {
@@ -3890,7 +3614,7 @@
    <property name="geometry">
     <rect>
      <x>552</x>
-     <y>245</y>
+     <y>220</y>
      <width>100</width>
      <height>20</height>
     </rect>
@@ -3931,7 +3655,7 @@
    <property name="geometry">
     <rect>
      <x>393</x>
-     <y>415</y>
+     <y>390</y>
      <width>140</width>
      <height>20</height>
     </rect>
@@ -3940,9 +3664,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_11</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_11 {
@@ -3969,7 +3690,7 @@
    <property name="geometry">
     <rect>
      <x>538</x>
-     <y>341</y>
+     <y>316</y>
      <width>160</width>
      <height>18</height>
     </rect>
@@ -4005,7 +3726,7 @@
    <property name="geometry">
     <rect>
      <x>363</x>
-     <y>215</y>
+     <y>190</y>
      <width>120</width>
      <height>20</height>
     </rect>
@@ -4015,16 +3736,13 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_17</string>
-   </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_17 {
   color: rgb(0, 0, 0);
   }</string>
    </property>
    <property name="text">
-    <string>Trigger mode</string>
+    <string>Capture mode</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -4043,7 +3761,7 @@
    <property name="geometry">
     <rect>
      <x>538</x>
-     <y>365</y>
+     <y>340</y>
      <width>160</width>
      <height>18</height>
     </rect>
@@ -4076,7 +3794,7 @@
    <property name="geometry">
     <rect>
      <x>538</x>
-     <y>315</y>
+     <y>290</y>
      <width>80</width>
      <height>20</height>
     </rect>
@@ -4103,7 +3821,7 @@
    <property name="geometry">
     <rect>
      <x>538</x>
-     <y>466</y>
+     <y>441</y>
      <width>100</width>
      <height>18</height>
     </rect>
@@ -4136,7 +3854,7 @@
    <property name="geometry">
     <rect>
      <x>518</x>
-     <y>490</y>
+     <y>465</y>
      <width>90</width>
      <height>20</height>
     </rect>
@@ -4196,7 +3914,7 @@
    <property name="geometry">
     <rect>
      <x>363</x>
-     <y>490</y>
+     <y>465</y>
      <width>150</width>
      <height>20</height>
     </rect>
@@ -4205,9 +3923,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_14</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_14 {
@@ -4272,7 +3987,7 @@
    <property name="geometry">
     <rect>
      <x>488</x>
-     <y>190</y>
+     <y>165</y>
      <width>120</width>
      <height>20</height>
     </rect>
@@ -4363,7 +4078,7 @@
    <property name="geometry">
     <rect>
      <x>413</x>
-     <y>340</y>
+     <y>315</y>
      <width>120</width>
      <height>20</height>
     </rect>
@@ -4372,9 +4087,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_19</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_19 {
@@ -4401,7 +4113,7 @@
    <property name="geometry">
     <rect>
      <x>488</x>
-     <y>215</y>
+     <y>190</y>
      <width>120</width>
      <height>20</height>
     </rect>
@@ -4412,7 +4124,7 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>${P}${R}TriggerMode</string>
+    <string>${P}${R}VideoMode</string>
    </property>
    <property name="styleSheet">
     <string notr="true">PyDMEnumComboBox{
@@ -4421,14 +4133,14 @@
   }</string>
    </property>
    <property name="channel" stdset="0">
-    <string>ca://${P}${R}TriggerMode</string>
+    <string>ca://${P}${R}VideoMode</string>
    </property>
   </widget>
   <widget class="PyDMLabel" name="text_update_32">
    <property name="geometry">
     <rect>
      <x>613</x>
-     <y>216</y>
+     <y>191</y>
      <width>80</width>
      <height>18</height>
     </rect>
@@ -4439,7 +4151,7 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>PV: ${P}${R}TriggerMode_RBV</string>
+    <string>PV: ${P}${R}VideoMode_RBV</string>
    </property>
    <property name="styleSheet">
     <string notr="true">PyDMLabel {
@@ -4454,7 +4166,7 @@
     <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
    </property>
    <property name="channel" stdset="0">
-    <string>ca://${P}${R}TriggerMode_RBV</string>
+    <string>ca://${P}${R}VideoMode_RBV</string>
    </property>
    <property name="displayFormat" stdset="0">
     <enum>PyDMLabel::String</enum>
@@ -4464,7 +4176,7 @@
    <property name="geometry">
     <rect>
      <x>393</x>
-     <y>365</y>
+     <y>340</y>
      <width>140</width>
      <height>20</height>
     </rect>
@@ -4473,9 +4185,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_10</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_10 {
@@ -4504,7 +4213,7 @@
      <x>358</x>
      <y>35</y>
      <width>350</width>
-     <height>480</height>
+     <height>455</height>
     </rect>
    </property>
    <property name="toolTip">
@@ -4569,49 +4278,11 @@
     <string>ca://${P}${R}AcquirePeriod_RBV</string>
    </property>
   </widget>
-  <widget class="QLabel" name="text_47">
-   <property name="geometry">
-    <rect>
-     <x>413</x>
-     <y>165</y>
-     <width>120</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-   <property name="toolTip">
-    <string>text_4</string>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">QLabel#text_4 {
-  color: rgb(0, 0, 0);
-  }</string>
-   </property>
-   <property name="text">
-    <string># Exp./image</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-   </property>
-   <property name="brush" stdset="0">
-    <brush brushstyle="SolidPattern">
-     <color alpha="255">
-      <red>0</red>
-      <green>0</green>
-      <blue>0</blue>
-     </color>
-    </brush>
-   </property>
-  </widget>
   <widget class="PyDMLabel" name="text_48">
    <property name="geometry">
     <rect>
      <x>581</x>
-     <y>245</y>
+     <y>220</y>
      <width>40</width>
      <height>20</height>
     </rect>
@@ -4620,9 +4291,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_5</string>
    </property>
    <property name="styleSheet">
     <string notr="true">PyDMLabel{
@@ -4648,44 +4316,11 @@
     </brush>
    </property>
   </widget>
-  <widget class="PyDMLabel" name="text_update_34">
-   <property name="geometry">
-    <rect>
-     <x>603</x>
-     <y>166</y>
-     <width>80</width>
-     <height>18</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-   <property name="toolTip">
-    <string>PV: ${P}${R}NumExposures_RBV</string>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">PyDMLabel {
-  color: rgb(10, 0, 184);
-  background-color: rgb(187, 187, 187);
-  }</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-   </property>
-   <property name="textInteractionFlags">
-    <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
-   </property>
-   <property name="channel" stdset="0">
-    <string>ca://${P}${R}NumExposures_RBV</string>
-   </property>
-  </widget>
   <widget class="PyDMLabel" name="text_update_35">
    <property name="geometry">
     <rect>
      <x>538</x>
-     <y>291</y>
+     <y>266</y>
      <width>60</width>
      <height>18</height>
     </rect>
@@ -4718,7 +4353,7 @@
    <property name="geometry">
     <rect>
      <x>433</x>
-     <y>465</y>
+     <y>440</y>
      <width>100</width>
      <height>20</height>
     </rect>
@@ -4727,9 +4362,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_13</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_13 {
@@ -4756,7 +4388,7 @@
    <property name="geometry">
     <rect>
      <x>403</x>
-     <y>440</y>
+     <y>415</y>
      <width>130</width>
      <height>20</height>
     </rect>
@@ -4765,9 +4397,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_12</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_12 {
@@ -4794,7 +4423,7 @@
    <property name="geometry">
     <rect>
      <x>428</x>
-     <y>390</y>
+     <y>365</y>
      <width>275</width>
      <height>18</height>
     </rect>
@@ -4830,7 +4459,7 @@
    <property name="geometry">
     <rect>
      <x>383</x>
-     <y>290</y>
+     <y>265</y>
      <width>150</width>
      <height>20</height>
     </rect>
@@ -4839,9 +4468,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_16</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_16 {
@@ -4868,7 +4494,7 @@
    <property name="geometry">
     <rect>
      <x>538</x>
-     <y>265</y>
+     <y>240</y>
      <width>59</width>
      <height>20</height>
     </rect>
@@ -4901,7 +4527,7 @@
    <property name="geometry">
     <rect>
      <x>463</x>
-     <y>265</y>
+     <y>240</y>
      <width>70</width>
      <height>20</height>
     </rect>
@@ -4910,9 +4536,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_7</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_7 {
@@ -4939,7 +4562,7 @@
    <property name="geometry">
     <rect>
      <x>363</x>
-     <y>390</y>
+     <y>365</y>
      <width>60</width>
      <height>20</height>
     </rect>
@@ -4948,9 +4571,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_15</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_15 {
@@ -5020,9 +4640,6 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_3</string>
-   </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_3 {
   color: rgb(0, 0, 0);
@@ -5048,7 +4665,7 @@
    <property name="geometry">
     <rect>
      <x>538</x>
-     <y>416</y>
+     <y>391</y>
      <width>67</width>
      <height>18</height>
     </rect>
@@ -5091,9 +4708,6 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_1</string>
-   </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_1 {
   color: rgb(0, 0, 0);
@@ -5129,11 +4743,8 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_8</string>
-   </property>
    <property name="styleSheet">
-    <string notr="true">QLabel#text_8 {
+    <string notr="true">QLabel {
   color: rgb(10, 0, 184);
   }</string>
    </property>
@@ -5157,7 +4768,7 @@
    <property name="geometry">
     <rect>
      <x>613</x>
-     <y>492</y>
+     <y>467</y>
      <width>80</width>
      <height>18</height>
     </rect>
@@ -5224,7 +4835,7 @@
    <property name="geometry">
     <rect>
      <x>613</x>
-     <y>192</y>
+     <y>167</y>
      <width>80</width>
      <height>18</height>
     </rect>
@@ -5260,7 +4871,7 @@
    <property name="geometry">
     <rect>
      <x>573</x>
-     <y>598</y>
+     <y>573</y>
      <width>60</width>
      <height>18</height>
     </rect>
@@ -5293,7 +4904,7 @@
    <property name="geometry">
     <rect>
      <x>388</x>
-     <y>572</y>
+     <y>547</y>
      <width>180</width>
      <height>20</height>
     </rect>
@@ -5302,9 +4913,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_2</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_2 {
@@ -5331,7 +4939,7 @@
    <property name="geometry">
     <rect>
      <x>368</x>
-     <y>622</y>
+     <y>597</y>
      <width>230</width>
      <height>20</height>
     </rect>
@@ -5340,9 +4948,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_3</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_3 {
@@ -5369,7 +4974,7 @@
    <property name="geometry">
     <rect>
      <x>481</x>
-     <y>519</y>
+     <y>494</y>
      <width>105</width>
      <height>21</height>
     </rect>
@@ -5417,7 +5022,7 @@
    <property name="geometry">
     <rect>
      <x>408</x>
-     <y>547</y>
+     <y>522</y>
      <width>160</width>
      <height>20</height>
     </rect>
@@ -5426,9 +5031,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_1</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_1 {
@@ -5455,7 +5057,7 @@
    <property name="geometry">
     <rect>
      <x>573</x>
-     <y>573</y>
+     <y>548</y>
      <width>50</width>
      <height>18</height>
     </rect>
@@ -5488,7 +5090,7 @@
    <property name="geometry">
     <rect>
      <x>628</x>
-     <y>573</y>
+     <y>548</y>
      <width>50</width>
      <height>18</height>
     </rect>
@@ -5521,7 +5123,7 @@
    <property name="geometry">
     <rect>
      <x>418</x>
-     <y>647</y>
+     <y>622</y>
      <width>150</width>
      <height>20</height>
     </rect>
@@ -5530,9 +5132,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_5</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_5 {
@@ -5559,7 +5158,7 @@
    <property name="geometry">
     <rect>
      <x>573</x>
-     <y>548</y>
+     <y>523</y>
      <width>50</width>
      <height>18</height>
     </rect>
@@ -5592,7 +5191,7 @@
    <property name="geometry">
     <rect>
      <x>455</x>
-     <y>520</y>
+     <y>495</y>
      <width>157</width>
      <height>20</height>
     </rect>
@@ -5602,11 +5201,8 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text</string>
-   </property>
    <property name="styleSheet">
-    <string notr="true">QLabel#text {
+    <string notr="true">QLabel {
   color: rgb(10, 0, 184);
   }</string>
    </property>
@@ -5630,7 +5226,7 @@
    <property name="geometry">
     <rect>
      <x>368</x>
-     <y>597</y>
+     <y>572</y>
      <width>200</width>
      <height>20</height>
     </rect>
@@ -5639,9 +5235,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_4</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_4 {
@@ -5668,7 +5261,7 @@
    <property name="geometry">
     <rect>
      <x>603</x>
-     <y>622</y>
+     <y>597</y>
      <width>90</width>
      <height>20</height>
     </rect>
@@ -5695,7 +5288,7 @@
    <property name="geometry">
     <rect>
      <x>638</x>
-     <y>598</y>
+     <y>573</y>
      <width>60</width>
      <height>18</height>
     </rect>
@@ -5728,7 +5321,7 @@
    <property name="geometry">
     <rect>
      <x>358</x>
-     <y>517</y>
+     <y>492</y>
      <width>350</width>
      <height>160</height>
     </rect>
@@ -5766,7 +5359,7 @@
    <property name="geometry">
     <rect>
      <x>573</x>
-     <y>647</y>
+     <y>622</y>
      <width>83</width>
      <height>20</height>
     </rect>
@@ -5799,7 +5392,7 @@
    <property name="geometry">
     <rect>
      <x>358</x>
-     <y>680</y>
+     <y>655</y>
      <width>350</width>
      <height>110</height>
     </rect>
@@ -5837,7 +5430,7 @@
    <property name="geometry">
     <rect>
      <x>429</x>
-     <y>711</y>
+     <y>686</y>
      <width>275</width>
      <height>20</height>
     </rect>
@@ -5871,7 +5464,7 @@
    <property name="geometry">
     <rect>
      <x>363</x>
-     <y>735</y>
+     <y>710</y>
      <width>60</width>
      <height>20</height>
     </rect>
@@ -5880,9 +5473,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_2</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_2 {
@@ -5909,7 +5499,7 @@
    <property name="geometry">
     <rect>
      <x>383</x>
-     <y>710</y>
+     <y>685</y>
      <width>40</width>
      <height>20</height>
     </rect>
@@ -5918,9 +5508,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_1</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_1 {
@@ -5947,7 +5534,7 @@
    <property name="geometry">
     <rect>
      <x>428</x>
-     <y>761</y>
+     <y>736</y>
      <width>275</width>
      <height>18</height>
     </rect>
@@ -5983,7 +5570,7 @@
    <property name="geometry">
     <rect>
      <x>363</x>
-     <y>760</y>
+     <y>735</y>
      <width>60</width>
      <height>20</height>
     </rect>
@@ -5992,9 +5579,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text_3</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_3 {
@@ -6021,7 +5605,7 @@
    <property name="geometry">
     <rect>
      <x>428</x>
-     <y>736</y>
+     <y>711</y>
      <width>275</width>
      <height>20</height>
     </rect>
@@ -6055,7 +5639,7 @@
    <property name="geometry">
     <rect>
      <x>488</x>
-     <y>682</y>
+     <y>657</y>
      <width>100</width>
      <height>20</height>
     </rect>
@@ -6065,11 +5649,8 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text</string>
-   </property>
    <property name="styleSheet">
-    <string notr="true">QLabel#text {
+    <string notr="true">QLabel {
   color: rgb(10, 0, 184);
   }</string>
    </property>
@@ -6093,7 +5674,7 @@
    <property name="geometry">
     <rect>
      <x>485</x>
-     <y>682</y>
+     <y>657</y>
      <width>107</width>
      <height>21</height>
     </rect>
@@ -6131,7 +5712,7 @@
    <property name="geometry">
     <rect>
      <x>367</x>
-     <y>890</y>
+     <y>865</y>
      <width>130</width>
      <height>20</height>
     </rect>
@@ -6140,9 +5721,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text {
@@ -6169,7 +5747,7 @@
    <property name="geometry">
     <rect>
      <x>502</x>
-     <y>890</y>
+     <y>865</y>
      <width>80</width>
      <height>18</height>
     </rect>
@@ -6279,9 +5857,6 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_8</string>
-   </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_8 {
   color: rgb(0, 0, 0);
@@ -6353,9 +5928,6 @@
      <pointsize>10</pointsize>
     </font>
    </property>
-   <property name="toolTip">
-    <string>text_7</string>
-   </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text_7 {
   color: rgb(0, 0, 0);
@@ -6390,9 +5962,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text {
@@ -6492,9 +6061,6 @@
     <font>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="toolTip">
-    <string>text</string>
    </property>
    <property name="styleSheet">
     <string notr="true">QLabel#text {
@@ -6659,9 +6225,7 @@
   <zorder>text_update_18</zorder>
   <zorder>text_update_19</zorder>
   <zorder>text_22b</zorder>
-  <zorder>text_22c</zorder>
   <zorder>text_update_19b</zorder>
-  <zorder>text_update_19c</zorder>
   <zorder>text_28</zorder>
   <zorder>text_29</zorder>
   <zorder>text_30</zorder>
@@ -6673,7 +6237,6 @@
   <zorder>text_update_22</zorder>
   <zorder>menu_3</zorder>
   <zorder>menu_3b</zorder>
-  <zorder>menu_3c</zorder>
   <zorder>text_update_23</zorder>
   <zorder>rectangle_7</zorder>
   <zorder>text_update_24</zorder>
@@ -6688,7 +6251,6 @@
   <zorder>text_38</zorder>
   <zorder>text_39</zorder>
   <zorder>text_entry_9</zorder>
-  <zorder>text_entry_10</zorder>
   <zorder>text_40</zorder>
   <zorder>text_41</zorder>
   <zorder>text_42</zorder>
@@ -6709,9 +6271,7 @@
   <zorder>text_update_32</zorder>
   <zorder>text_46</zorder>
   <zorder>text_update_33</zorder>
-  <zorder>text_47</zorder>
   <zorder>text_48</zorder>
-  <zorder>text_update_34</zorder>
   <zorder>text_update_35</zorder>
   <zorder>text_49</zorder>
   <zorder>text_50</zorder>

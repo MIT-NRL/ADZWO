@@ -20,7 +20,7 @@
 #include <iocsh.h>
 
 static const char *driverName = "ZWODriver";
-static const char *driverVersion = "0.3.0";
+static const char *driverVersion = "1.0.0";
 
 static void ZWODriverCaptureTaskC(void *drvPvt) {
     ZWODriver *driver = (ZWODriver *)drvPvt;
@@ -57,6 +57,26 @@ static long clampSignedRange(long value, long minValue, long maxValue) {
         return maxValue;
     }
     return value;
+}
+
+static int clampIntRange(int value, int minValue, int maxValue) {
+    if (value < minValue) {
+        return minValue;
+    }
+    if (value > maxValue) {
+        return maxValue;
+    }
+    return value;
+}
+
+static int alignDownToStep(int value, int step) {
+    if (step <= 1) {
+        return value;
+    }
+    if (value <= 0) {
+        return 0;
+    }
+    return value - (value % step);
 }
 
 ZWODriver::ZWODriver(const char *portName, int maxBuffers, size_t maxMemory,
@@ -443,28 +463,22 @@ asynStatus ZWODriver::writeInt32(asynUser *pasynUser, epicsInt32 value) {
     }
 
     if ((function == ADBinX) || (function == ADBinY)) {
-        if (cameraID < 0) {
-            if (value < 1) {
-                value = 1;
-            }
-            status |= setIntegerParam(ADBinX, value);
-            status |= setIntegerParam(ADBinY, value);
-            status |= callParamCallbacks();
-            return (asynStatus)status;
-        }
-        // Keep BinX and BinY in sync, and ensure that they are valid values
-        for (int i = 0; i < 16; i++) {
-            if (cameraInfo.SupportedBins[i] == 0)
-                break;
-            if (cameraInfo.SupportedBins[i] == value) {
-                status |= setIntegerParam(ADBinX, value);
-                status |= setIntegerParam(ADBinY, value);
-                status |= callParamCallbacks();
-                return (asynStatus)status;
-            }
-        }
+        int acquiringNow = 0;
+        int correctedBin = nearestSupportedBin((int)value);
+        status |= setIntegerParam(ADBinX, correctedBin);
+        status |= setIntegerParam(ADBinY, correctedBin);
+        getIntegerParam(ADAcquire, &acquiringNow);
+        status |= normalizeROI(NULL, (cameraID >= 0) && !acquiringNow);
+        return (asynStatus)status;
+    }
 
-        return asynError;
+    if ((function == ADMinX) || (function == ADMinY) || (function == ADSizeX) ||
+        (function == ADSizeY)) {
+        int acquiringNow = 0;
+        status |= setIntegerParam(function, value);
+        getIntegerParam(ADAcquire, &acquiringNow);
+        status |= normalizeROI(NULL, (cameraID >= 0) && !acquiringNow);
+        return (asynStatus)status;
     }
 
     if (function == NDDataType) {
@@ -582,96 +596,271 @@ asynStatus ZWODriver::setReverse(int reverseX, int reverseY) {
     return (asynStatus)status;
 }
 
-asynStatus ZWODriver::setROIFormat(ROIFormat_t *out) {
+int ZWODriver::nearestSupportedBin(int requestedBin) const {
+    int bestBin = requestedBin < 1 ? 1 : requestedBin;
+    int bestDelta = 0x7fffffff;
+    bool haveSupportedBin = false;
+
+    if (requestedBin < 1) {
+        requestedBin = 1;
+    }
+
+    for (int i = 0; i < 16; i++) {
+        int supportedBin = cameraInfo.SupportedBins[i];
+        int delta;
+        if (supportedBin <= 0) {
+            break;
+        }
+        delta = supportedBin - requestedBin;
+        if (delta < 0) {
+            delta = -delta;
+        }
+        if (!haveSupportedBin || (delta < bestDelta) ||
+            ((delta == bestDelta) && (supportedBin < bestBin))) {
+            bestBin = supportedBin;
+            bestDelta = delta;
+            haveSupportedBin = true;
+        }
+    }
+
+    return bestBin;
+}
+
+asynStatus ZWODriver::normalizeROI(ROIFormat_t *out, bool applyToCamera) {
     int status = asynSuccess;
     int colorMode, dataType;
+    int binX, binY, minX, minY, sizeX, sizeY;
+    int maxSizeX, maxSizeY;
+    int imgWidth, imgHeight, imgBin, startX, startY;
+    int widthStep, heightStep;
     ASI_IMG_TYPE imgType;
 
     status |= getIntegerParam(NDColorMode, &colorMode);
     status |= getIntegerParam(NDDataType, &dataType);
-
-    int binX, binY, minX, minY, sizeX, sizeY, maxSizeX, maxSizeY;
-    int imgWidth, imgHeight, imgBin, startX, startY;
     status |= getIntegerParam(ADMinX, &minX);
     status |= getIntegerParam(ADMinY, &minY);
     status |= getIntegerParam(ADSizeX, &sizeX);
     status |= getIntegerParam(ADSizeY, &sizeY);
     status |= getIntegerParam(ADBinX, &binX);
     status |= getIntegerParam(ADBinY, &binY);
+    status |= getIntegerParam(ADMaxSizeX, &maxSizeX);
+    status |= getIntegerParam(ADMaxSizeY, &maxSizeY);
 
-    maxSizeX = cameraInfo.MaxWidth;
-    maxSizeY = cameraInfo.MaxHeight;
+    if (cameraInfo.MaxWidth > 0) {
+        maxSizeX = cameraInfo.MaxWidth;
+    }
+    if (cameraInfo.MaxHeight > 0) {
+        maxSizeY = cameraInfo.MaxHeight;
+    }
 
-    // Image Type (Color & Data Type)
     if ((colorMode == NDColorModeMono) && (dataType == NDUInt8)) {
-        if (cameraInfo.IsColorCam) {
-            imgType = ASI_IMG_Y8;
-        } else {
-            imgType = ASI_IMG_RAW8;
-        }
+        imgType = cameraInfo.IsColorCam ? ASI_IMG_Y8 : ASI_IMG_RAW8;
     } else if ((colorMode == NDColorModeMono) && (dataType == NDUInt16)) {
-        if (cameraInfo.IsColorCam)
-            goto unsupportedMode;
+        if (cameraInfo.IsColorCam) {
+            return asynError;
+        }
         imgType = ASI_IMG_RAW16;
     } else if ((colorMode == NDColorModeRGB3) && (dataType == NDUInt8)) {
-        if (!cameraInfo.IsColorCam)
-            goto unsupportedMode;
+        if (!cameraInfo.IsColorCam) {
+            return asynError;
+        }
         imgType = ASI_IMG_RGB24;
     } else if ((colorMode == NDColorModeBayer) && (dataType == NDUInt8)) {
-        if (!cameraInfo.IsColorCam)
-            goto unsupportedMode;
+        if (!cameraInfo.IsColorCam) {
+            return asynError;
+        }
         imgType = ASI_IMG_RAW8;
     } else if ((colorMode == NDColorModeBayer) && (dataType == NDUInt16)) {
-        if (!cameraInfo.IsColorCam)
-            goto unsupportedMode;
+        if (!cameraInfo.IsColorCam) {
+            return asynError;
+        }
         imgType = ASI_IMG_RAW16;
     } else {
-    unsupportedMode:
-        asynPrint(
-            this->pasynUserSelf, ASYN_TRACE_ERROR,
-            "%s:%s: error unsupported data type %d and/or color mode %d\n",
-            driverName, __func__, dataType, colorMode);
-
         return asynError;
     }
 
-    // ROI
-    if (binX < 1) {
-        binX = 1;
-        status |= setIntegerParam(ADBinX, binX);
+    imgBin = nearestSupportedBin(binX > binY ? binX : binY);
+    if (imgBin < 1) {
+        imgBin = 1;
     }
-    if (binY < 1) {
-        binY = 1;
-        status |= setIntegerParam(ADBinY, binY);
+    widthStep = imgBin * 8;
+    heightStep = imgBin * 2;
+
+    if ((maxSizeX > 0) && (widthStep > maxSizeX)) {
+        widthStep = maxSizeX;
+    }
+    if ((maxSizeY > 0) && (heightStep > maxSizeY)) {
+        heightStep = maxSizeY;
+    }
+    if (widthStep < imgBin) {
+        widthStep = imgBin;
+    }
+    if (heightStep < imgBin) {
+        heightStep = imgBin;
     }
 
-    if (binX != binY) {
-        // X and Y binning must be equal
-        return asynError;
+    minX = alignDownToStep(minX, imgBin);
+    minY = alignDownToStep(minY, imgBin);
+    if (minX < 0) {
+        minX = 0;
     }
-    imgBin = binX;
-
-    if (minX + sizeX > maxSizeX) {
-        sizeX = maxSizeX - minX;
-        status |= setIntegerParam(ADSizeX, sizeX);
-    }
-    if (minY + sizeY > maxSizeY) {
-        sizeY = maxSizeY - minY;
-        status |= setIntegerParam(ADSizeY, sizeY);
+    if (minY < 0) {
+        minY = 0;
     }
 
-    imgWidth = sizeX / binX;
-    imgHeight = sizeY / binY;
-    startX = minX / binX;
-    startY = minY / binY;
+    if (sizeX <= 0) {
+        sizeX = widthStep;
+    }
+    if (sizeY <= 0) {
+        sizeY = heightStep;
+    }
 
+    sizeX = alignDownToStep(sizeX, widthStep);
+    sizeY = alignDownToStep(sizeY, heightStep);
+    if (sizeX < widthStep) {
+        sizeX = widthStep;
+    }
+    if (sizeY < heightStep) {
+        sizeY = heightStep;
+    }
+
+    if (maxSizeX > 0) {
+        int maxStartX = maxSizeX - widthStep;
+        int maxValidSizeX;
+        if (maxStartX < 0) {
+            maxStartX = 0;
+        }
+        minX = clampIntRange(minX, 0, maxStartX);
+        minX = alignDownToStep(minX, imgBin);
+        maxValidSizeX = alignDownToStep(maxSizeX - minX, widthStep);
+        if (maxValidSizeX < widthStep) {
+            minX = alignDownToStep(maxSizeX - widthStep, imgBin);
+            if (minX < 0) {
+                minX = 0;
+            }
+            maxValidSizeX = alignDownToStep(maxSizeX - minX, widthStep);
+        }
+        if (maxValidSizeX >= widthStep) {
+            sizeX = clampIntRange(sizeX, widthStep, maxValidSizeX);
+            sizeX = alignDownToStep(sizeX, widthStep);
+            if (sizeX < widthStep) {
+                sizeX = widthStep;
+            }
+        }
+    }
+
+    if (maxSizeY > 0) {
+        int maxStartY = maxSizeY - heightStep;
+        int maxValidSizeY;
+        if (maxStartY < 0) {
+            maxStartY = 0;
+        }
+        minY = clampIntRange(minY, 0, maxStartY);
+        minY = alignDownToStep(minY, imgBin);
+        maxValidSizeY = alignDownToStep(maxSizeY - minY, heightStep);
+        if (maxValidSizeY < heightStep) {
+            minY = alignDownToStep(maxSizeY - heightStep, imgBin);
+            if (minY < 0) {
+                minY = 0;
+            }
+            maxValidSizeY = alignDownToStep(maxSizeY - minY, heightStep);
+        }
+        if (maxValidSizeY >= heightStep) {
+            sizeY = clampIntRange(sizeY, heightStep, maxValidSizeY);
+            sizeY = alignDownToStep(sizeY, heightStep);
+            if (sizeY < heightStep) {
+                sizeY = heightStep;
+            }
+        }
+    }
+
+    imgWidth = sizeX / imgBin;
+    imgHeight = sizeY / imgBin;
+    startX = minX / imgBin;
+    startY = minY / imgBin;
+
+    status |= setIntegerParam(ADBinX, imgBin);
+    status |= setIntegerParam(ADBinY, imgBin);
+    status |= setIntegerParam(ADMinX, minX);
+    status |= setIntegerParam(ADMinY, minY);
+    status |= setIntegerParam(ADSizeX, sizeX);
+    status |= setIntegerParam(ADSizeY, sizeY);
     status |= setIntegerParam(NDArraySizeX, imgWidth);
     status |= setIntegerParam(NDArraySizeY, imgHeight);
 
-    status |= ASISetROIFormat(cameraID, imgWidth, imgHeight, imgBin, imgType);
-    status |= ASISetStartPos(cameraID, startX, startY);
+    if (applyToCamera && (cameraID >= 0)) {
+        ASI_ERROR_CODE asiStatus;
+        asiStatus =
+            ASISetROIFormat(cameraID, imgWidth, imgHeight, imgBin, imgType);
+        if (asiStatus == ASI_SUCCESS) {
+            asiStatus = ASISetStartPos(cameraID, startX, startY);
+        }
+        if (asiStatus != ASI_SUCCESS) {
+            int actualWidth, actualHeight, actualBin;
+            int actualStartX, actualStartY;
+            ASI_IMG_TYPE actualType;
 
-    if (status == asynSuccess && out != NULL) {
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
+                      "%s:%s: camera rejected ROI (%d)\n", driverName,
+                      __func__, asiStatus);
+
+            if ((ASIGetROIFormat(cameraID, &actualWidth, &actualHeight,
+                                 &actualBin, &actualType) == ASI_SUCCESS) &&
+                (ASIGetStartPos(cameraID, &actualStartX, &actualStartY) ==
+                 ASI_SUCCESS)) {
+                imgBin = actualBin;
+                imgWidth = actualWidth;
+                imgHeight = actualHeight;
+                startX = actualStartX;
+                startY = actualStartY;
+                minX = actualStartX * actualBin;
+                minY = actualStartY * actualBin;
+                sizeX = actualWidth * actualBin;
+                sizeY = actualHeight * actualBin;
+                status |= setIntegerParam(ADBinX, imgBin);
+                status |= setIntegerParam(ADBinY, imgBin);
+                status |= setIntegerParam(ADMinX, minX);
+                status |= setIntegerParam(ADMinY, minY);
+                status |= setIntegerParam(ADSizeX, sizeX);
+                status |= setIntegerParam(ADSizeY, sizeY);
+                status |= setIntegerParam(NDArraySizeX, imgWidth);
+                status |= setIntegerParam(NDArraySizeY, imgHeight);
+            }
+            status |= callParamCallbacks();
+            return asynError;
+        }
+
+        {
+            int actualWidth, actualHeight, actualBin;
+            int actualStartX, actualStartY;
+            ASI_IMG_TYPE actualType;
+
+            if ((ASIGetROIFormat(cameraID, &actualWidth, &actualHeight,
+                                 &actualBin, &actualType) == ASI_SUCCESS) &&
+                (ASIGetStartPos(cameraID, &actualStartX, &actualStartY) ==
+                 ASI_SUCCESS)) {
+                imgBin = actualBin;
+                imgWidth = actualWidth;
+                imgHeight = actualHeight;
+                startX = actualStartX;
+                startY = actualStartY;
+                minX = actualStartX * actualBin;
+                minY = actualStartY * actualBin;
+                sizeX = actualWidth * actualBin;
+                sizeY = actualHeight * actualBin;
+                status |= setIntegerParam(ADBinX, imgBin);
+                status |= setIntegerParam(ADBinY, imgBin);
+                status |= setIntegerParam(ADMinX, minX);
+                status |= setIntegerParam(ADMinY, minY);
+                status |= setIntegerParam(ADSizeX, sizeX);
+                status |= setIntegerParam(ADSizeY, sizeY);
+                status |= setIntegerParam(NDArraySizeX, imgWidth);
+                status |= setIntegerParam(NDArraySizeY, imgHeight);
+            }
+        }
+    }
+
+    if (out != NULL) {
         out->colorMode = (NDColorMode_t)colorMode;
         out->dataType = (NDDataType_t)dataType;
         out->imgType = imgType;
@@ -682,9 +871,12 @@ asynStatus ZWODriver::setROIFormat(ROIFormat_t *out) {
         out->startY = startY;
     }
 
-    callParamCallbacks();
+    status |= callParamCallbacks();
+    return (asynStatus)status;
+}
 
-    return ((asynStatus)status);
+asynStatus ZWODriver::setROIFormat(ROIFormat_t *out) {
+    return normalizeROI(out, true);
 }
 
 asynStatus ZWODriver::connectCamera() {
@@ -868,6 +1060,7 @@ void ZWODriver::captureTask() {
     ASI_EXPOSURE_STATUS exposureStatus;
     ASI_ERROR_CODE asiStatus;
     ROIFormat_t roiFormat;
+    NDArrayInfo_t arrayInfo;
 
     auto allocImage = [this, &roiFormat]() -> NDArray * {
         if (roiFormat.imgType == ASI_IMG_RGB24) {
@@ -1095,7 +1288,8 @@ void ZWODriver::captureTask() {
                 pImage->timeStamp = startTime.secPastEpoch + startTime.nsec / 1.e9;
                 updateTimeStamp(&pImage->epicsTS);
 
-                setIntegerParam(NDArraySize, pImage->dataSize);
+                pImage->getInfo(&arrayInfo);
+                setIntegerParam(NDArraySize, (int)arrayInfo.totalBytes);
                 this->getAttributes(pImage->pAttributeList);
 
                 if (arrayCallbacks) {
@@ -1323,7 +1517,8 @@ void ZWODriver::captureTask() {
                 continue;
             }
 
-            setIntegerParam(NDArraySize, pImage->dataSize);
+            pImage->getInfo(&arrayInfo);
+            setIntegerParam(NDArraySize, (int)arrayInfo.totalBytes);
 
             this->getAttributes(pImage->pAttributeList);
             
