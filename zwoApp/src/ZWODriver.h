@@ -16,6 +16,8 @@
 #define ADUSBBandwidthString "USB_BANDWIDTH"
 #define ADUSBBandwidthAutoString "USB_BANDWIDTH_AUTO"
 #define ADCameraConnectString "CAMERA_CONNECT"
+#define ADHighSpeedModeString "HIGH_SPEED_MODE"
+#define ADVideoModeString "VIDEO_MODE"
 
 typedef struct ROIFormat {
     NDColorMode_t colorMode;
@@ -70,6 +72,7 @@ public:
 
 private:
     int cameraID;
+    bool hasHighSpeedMode;
     ASI_CAMERA_INFO cameraInfo;
     ASI_CONTROL_LIMITS controlLimits;
 
@@ -98,6 +101,8 @@ protected:
     int ADUSBBandwidth;
     int ADUSBBandwidthAuto;
     int ADCameraConnect;
+    int ADHighSpeedMode;
+    int ADVideoMode;
 };
 
 #endif

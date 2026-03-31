@@ -78,6 +78,8 @@ ZWODriver::ZWODriver(const char *portName, int maxBuffers, size_t maxMemory,
     createParam(ADUSBBandwidthAutoString, asynParamInt32,
                 &ADUSBBandwidthAuto);
     createParam(ADCameraConnectString, asynParamInt32, &ADCameraConnect);
+    createParam(ADHighSpeedModeString, asynParamInt32, &ADHighSpeedMode);
+    createParam(ADVideoModeString, asynParamInt32, &ADVideoMode);
 
     int status = asynSuccess;
 
@@ -85,9 +87,12 @@ ZWODriver::ZWODriver(const char *portName, int maxBuffers, size_t maxMemory,
     this->stopEvent = new epicsEvent();
 
     this->cameraID = -1;
+    this->hasHighSpeedMode = false;
     this->deviceIsReachable = true;
     asynPortDriver::connect(this->pasynUserSelf);
     setIntegerParam(ADCameraConnect, 0);
+    setIntegerParam(ADHighSpeedMode, 0);
+    setIntegerParam(ADVideoMode, 0);
     connectCamera();
 
     // Set default values
@@ -338,6 +343,23 @@ asynStatus ZWODriver::applyCachedSettingsToCamera() {
     setIntegerParam(ADUSBBandwidth, (int)controlValue);
     setIntegerParam(ADUSBBandwidthAuto, (int)isAuto);
 
+    if (hasHighSpeedMode) {
+        getIntegerParam(ADHighSpeedMode, &intValue);
+        controlValue = intValue ? 1 : 0;
+        asiStatus =
+            ASISetControlValue(cameraID, ASI_HIGH_SPEED_MODE, controlValue,
+                               ASI_FALSE);
+        if (asiStatus != ASI_SUCCESS) {
+            return asynError;
+        }
+        asiStatus = ASIGetControlValue(cameraID, ASI_HIGH_SPEED_MODE,
+                                       &controlValue, &isAuto);
+        if (asiStatus != ASI_SUCCESS) {
+            return asynError;
+        }
+        setIntegerParam(ADHighSpeedMode, (int)controlValue);
+    }
+
     return asynSuccess;
 }
 
@@ -388,6 +410,34 @@ asynStatus ZWODriver::writeInt32(asynUser *pasynUser, epicsInt32 value) {
         status |= setIntegerParam(ADCameraConnect, 0);
         status |= setIntegerParam(ADStatus, ADStatusDisconnected);
         status |= setStringParam(ADStatusMessage, "Disconnected");
+        status |= callParamCallbacks();
+        return (asynStatus)status;
+    }
+
+    if (function == ADHighSpeedMode) {
+        if ((value != 0) && (value != 1)) {
+            return asynError;
+        }
+        if (cameraID >= 0 && hasHighSpeedMode) {
+            long controlValue = value ? 1 : 0;
+            ASI_BOOL isAuto = ASI_FALSE;
+            status |= ASISetControlValue(cameraID, ASI_HIGH_SPEED_MODE,
+                                         controlValue, ASI_FALSE);
+            status |= ASIGetControlValue(cameraID, ASI_HIGH_SPEED_MODE,
+                                         &controlValue, &isAuto);
+            status |= setIntegerParam(ADHighSpeedMode, (int)controlValue);
+        } else {
+            status |= setIntegerParam(ADHighSpeedMode, value);
+        }
+        status |= callParamCallbacks();
+        return (asynStatus)status;
+    }
+
+    if (function == ADVideoMode) {
+        if ((value != 0) && (value != 1)) {
+            return asynError;
+        }
+        status |= setIntegerParam(ADVideoMode, value);
         status |= callParamCallbacks();
         return (asynStatus)status;
     }
@@ -685,6 +735,7 @@ asynStatus ZWODriver::connectCamera() {
     //
     ASIGetCameraPropertyByID(cameraID, &cameraInfo);
     this->cameraID = cameraID;
+    this->hasHighSpeedMode = false;
     this->cameraInfo = cameraInfo;
     memset(&this->controlLimits, 0, sizeof(this->controlLimits));
 
@@ -715,6 +766,8 @@ asynStatus ZWODriver::connectCamera() {
         } else if (caps.ControlType == ASI_BANDWIDTHOVERLOAD) {
             this->controlLimits.minUSB = caps.MinValue;
             this->controlLimits.maxUSB = caps.MaxValue;
+        } else if (caps.ControlType == ASI_HIGH_SPEED_MODE) {
+            this->hasHighSpeedMode = true;
         }
     }
 
@@ -736,11 +789,19 @@ asynStatus ZWODriver::connectCamera() {
     status |= setDoubleParam(ADSensorPixelSize, cameraInfo.PixelSize);
 
     long bandwidthValue;
+    long highSpeedValue = 0;
     ASI_BOOL isAuto = ASI_FALSE;
     ASIGetControlValue(cameraID, ASI_BANDWIDTHOVERLOAD, &bandwidthValue, &isAuto);
 
     status |= setIntegerParam(ADUSBBandwidth, bandwidthValue);
     status |= setIntegerParam(ADUSBBandwidthAuto, (int)isAuto);
+    if (hasHighSpeedMode) {
+        ASIGetControlValue(cameraID, ASI_HIGH_SPEED_MODE, &highSpeedValue,
+                           &isAuto);
+        status |= setIntegerParam(ADHighSpeedMode, (int)highSpeedValue);
+    } else {
+        status |= setIntegerParam(ADHighSpeedMode, 0);
+    }
 
     status |= applyCachedSettingsToCamera();
     callParamCallbacks();
@@ -779,11 +840,13 @@ asynStatus ZWODriver::disconnectCamera(const char *statusMessage) {
     stopEvent->signal();
 
     if (connectedCameraID >= 0) {
+        ASIStopVideoCapture(connectedCameraID);
         ASIStopExposure(connectedCameraID);
         ASICloseCamera(connectedCameraID);
     }
 
     memset(&this->cameraInfo, 0, sizeof(this->cameraInfo));
+    this->hasHighSpeedMode = false;
     memset(&this->controlLimits, 0, sizeof(this->controlLimits));
 
     return setConnectionState(false, statusMessage);
@@ -795,6 +858,7 @@ void ZWODriver::captureTask() {
     int numImages, numImagesCounter;
     int imageMode;
     int acquire = 0;
+    int videoMode = 0;
     int arrayCallbacks;
     double acquireTime;
     double timeRemaining = 0.0;
@@ -804,6 +868,19 @@ void ZWODriver::captureTask() {
     ASI_EXPOSURE_STATUS exposureStatus;
     ASI_ERROR_CODE asiStatus;
     ROIFormat_t roiFormat;
+
+    auto allocImage = [this, &roiFormat]() -> NDArray * {
+        if (roiFormat.imgType == ASI_IMG_RGB24) {
+            size_t dims[3] = {(size_t)roiFormat.imgWidth,
+                              (size_t)roiFormat.imgHeight, 3};
+            return this->pNDArrayPool->alloc(3, dims, roiFormat.dataType, 0,
+                                             NULL);
+        }
+
+        size_t dims[2] = {(size_t)roiFormat.imgWidth,
+                          (size_t)roiFormat.imgHeight};
+        return this->pNDArrayPool->alloc(2, dims, roiFormat.dataType, 0, NULL);
+    };
 
     this->lock();
     while (true) {
@@ -837,12 +914,242 @@ void ZWODriver::captureTask() {
         status |= getIntegerParam(ADReverseX, &reverseX);
         status |= getIntegerParam(ADReverseY, &reverseY);
         status |= setReverse(reverseX, reverseY);
+        status |= getIntegerParam(ADVideoMode, &videoMode);
 
         if (status != 0) {
             acquire = 0;
             setIntegerParam(ADAcquire, 0);
             setIntegerParam(ADStatus, ADStatusError);
             callParamCallbacks();
+            continue;
+        }
+
+        if (videoMode) {
+            bool restartCapture = false;
+            int videoTimeoutCount = 0;
+            int activeVideoCameraID = cameraID;
+
+            if (cameraID >= 0) {
+                ASIStopExposure(cameraID);
+            }
+
+            asiStatus = ASIStartVideoCapture(cameraID);
+            if (asiStatus != ASI_SUCCESS) {
+                bool didReconnect = false;
+                if (handleCameraError("starting video capture", asiStatus,
+                                      &didReconnect) == asynSuccess &&
+                    didReconnect) {
+                    continue;
+                }
+                acquire = 0;
+                continue;
+            }
+
+            setStringParam(ADStatusMessage, "Waiting for video frame");
+            setIntegerParam(ADStatus, ADStatusAcquire);
+            setDoubleParam(ADTimeRemaining, 0.0);
+            callParamCallbacks();
+
+            while (acquire) {
+                int videoWaitMs;
+                NDArray *pImage;
+
+                if (cameraID < 0) {
+                    acquire = 0;
+                    break;
+                }
+
+                getDoubleParam(ADAcquireTime, &acquireTime);
+                videoWaitMs = (int)(acquireTime * 1000.0);
+                if (videoWaitMs < 50) {
+                    videoWaitMs = 50;
+                }
+                if (videoWaitMs > 250) {
+                    videoWaitMs = 250;
+                }
+
+                pImage = allocImage();
+                if (pImage == NULL) {
+                    acquire = 0;
+                    setIntegerParam(ADAcquire, 0);
+                    setIntegerParam(ADStatus, ADStatusError);
+                    setStringParam(ADStatusMessage, "Failed to allocate image");
+                    callParamCallbacks();
+                    break;
+                }
+
+                epicsTimeGetCurrent(&startTime);
+
+                while (cameraID >= 0) {
+                    epicsTimeGetCurrent(&currentTime);
+                    timeRemaining =
+                        acquireTime -
+                        epicsTimeDiffInSeconds(&currentTime, &startTime);
+                    if (timeRemaining < 0.0) {
+                        timeRemaining = 0.0;
+                    }
+                    setDoubleParam(ADTimeRemaining, timeRemaining);
+                    callParamCallbacks();
+
+                    this->unlock();
+                    bool stopRequested = this->stopEvent->tryWait();
+                    if (!stopRequested) {
+                        asiStatus =
+                            ASIGetVideoData(cameraID,
+                                            (unsigned char *)pImage->pData,
+                                            pImage->dataSize, videoWaitMs);
+                    } else {
+                        asiStatus = ASI_SUCCESS;
+                    }
+                    this->lock();
+
+                    if (stopRequested) {
+                        if (cameraID < 0) {
+                            pImage->release();
+                            acquire = 0;
+                            break;
+                        }
+                        acquire = 0;
+                        setIntegerParam(ADAcquire, 0);
+                        getIntegerParam(ADImageMode, &imageMode);
+                        if (imageMode == ADImageContinuous) {
+                            setIntegerParam(ADStatus, ADStatusIdle);
+                        } else {
+                            setIntegerParam(ADStatus, ADStatusAborted);
+                        }
+                        setDoubleParam(ADTimeRemaining, 0.0);
+                        callParamCallbacks();
+                        pImage->release();
+                        break;
+                    }
+
+                    if (cameraID < 0) {
+                        pImage->release();
+                        acquire = 0;
+                        break;
+                    }
+
+                    if (asiStatus == ASI_ERROR_TIMEOUT) {
+                        videoTimeoutCount++;
+                        if (videoTimeoutCount >= 3) {
+                            bool didReconnect = false;
+                            if (checkCameraConnection(
+                                    "probing camera after video timeout",
+                                    &didReconnect) != asynSuccess) {
+                                pImage->release();
+                                acquire = 0;
+                                break;
+                            }
+                            if (didReconnect) {
+                                pImage->release();
+                                restartCapture = true;
+                                break;
+                            }
+                            videoTimeoutCount = 0;
+                        }
+                        continue;
+                    }
+                    videoTimeoutCount = 0;
+
+                    if (asiStatus != ASI_SUCCESS) {
+                        pImage->release();
+                        bool didReconnect = false;
+                        if (handleCameraError("reading video data", asiStatus,
+                                              &didReconnect) == asynSuccess &&
+                            didReconnect) {
+                            restartCapture = true;
+                        } else {
+                            acquire = 0;
+                        }
+                        break;
+                    }
+
+                    break;
+                }
+
+                if (cameraID >= 0 && activeVideoCameraID >= 0 &&
+                    cameraID == activeVideoCameraID &&
+                    (!acquire || restartCapture)) {
+                    ASIStopVideoCapture(activeVideoCameraID);
+                }
+
+                if (!acquire || restartCapture) {
+                    break;
+                }
+
+                setDoubleParam(ADTimeRemaining, 0.0);
+                getIntegerParam(NDArrayCounter, &imageCounter);
+                getIntegerParam(ADNumImages, &numImages);
+                getIntegerParam(ADNumImagesCounter, &numImagesCounter);
+                getIntegerParam(ADImageMode, &imageMode);
+                getIntegerParam(NDArrayCallbacks, &arrayCallbacks);
+                getDoubleParam(ADAcquirePeriod, &acquirePeriod);
+
+                numImagesCounter++;
+                imageCounter++;
+                setIntegerParam(NDArrayCounter, imageCounter);
+                setIntegerParam(ADNumImagesCounter, numImagesCounter);
+                setStringParam(ADStatusMessage, "Transfering image");
+
+                pImage->uniqueId = imageCounter;
+                pImage->timeStamp = startTime.secPastEpoch + startTime.nsec / 1.e9;
+                updateTimeStamp(&pImage->epicsTS);
+
+                setIntegerParam(NDArraySize, pImage->dataSize);
+                this->getAttributes(pImage->pAttributeList);
+
+                if (arrayCallbacks) {
+                    doCallbacksGenericPointer(pImage, NDArrayData, 0);
+                }
+                pImage->release();
+
+                callParamCallbacks();
+
+                getIntegerParam(ADAcquire, &acquire);
+                if ((acquire == 0) || (imageMode == ADImageSingle) ||
+                    ((imageMode == ADImageMultiple) &&
+                     (numImagesCounter >= numImages))) {
+                    acquire = 0;
+                    setIntegerParam(ADAcquire, 0);
+                    setIntegerParam(ADStatus, ADStatusIdle);
+                    callParamCallbacks();
+                }
+
+                if (acquire) {
+                    epicsTimeGetCurrent(&endTime);
+                    double elapsedTime =
+                        epicsTimeDiffInSeconds(&endTime, &startTime);
+                    double delay = acquirePeriod - elapsedTime;
+
+                    if (delay > 0) {
+                        setIntegerParam(ADStatus, ADStatusWaiting);
+                        callParamCallbacks();
+                        this->unlock();
+                        bool s = this->stopEvent->wait(delay);
+                        this->lock();
+                        if (s) {
+                            acquire = 0;
+                            if (imageMode == ADImageContinuous) {
+                                setIntegerParam(ADStatus, ADStatusIdle);
+                            } else {
+                                setIntegerParam(ADStatus, ADStatusAborted);
+                            }
+                            setIntegerParam(ADAcquire, 0);
+                            callParamCallbacks();
+                        }
+                    }
+                }
+            }
+
+            if (cameraID >= 0 && activeVideoCameraID >= 0 &&
+                cameraID == activeVideoCameraID) {
+                ASIStopVideoCapture(activeVideoCameraID);
+            }
+
+            if (restartCapture) {
+                continue;
+            }
+
             continue;
         }
 
@@ -924,6 +1231,10 @@ void ZWODriver::captureTask() {
             bool s = this->stopEvent->wait(SHORT_WAIT);
             this->lock();
             if (s) {
+                if (cameraID < 0) {
+                    acquire = 0;
+                    break;
+                }
                 // Abort exposure
                 if (cameraID >= 0) {
                     ASIStopExposure(cameraID);
@@ -983,18 +1294,14 @@ void ZWODriver::captureTask() {
             setStringParam(ADStatusMessage, "Transfering image");
 
             // Allocate pImage and read data from camera
-            NDArray *pImage;
-
-            if (roiFormat.imgType == ASI_IMG_RGB24) {
-                size_t dims[3] = {(size_t)roiFormat.imgWidth,
-                                  (size_t)roiFormat.imgHeight, 3};
-                pImage = this->pNDArrayPool->alloc(3, dims, roiFormat.dataType,
-                                                   0, NULL);
-            } else {
-                size_t dims[2] = {(size_t)roiFormat.imgWidth,
-                                  (size_t)roiFormat.imgHeight};
-                pImage = this->pNDArrayPool->alloc(2, dims, roiFormat.dataType,
-                                                   0, NULL);
+            NDArray *pImage = allocImage();
+            if (pImage == NULL) {
+                acquire = 0;
+                setIntegerParam(ADAcquire, 0);
+                setIntegerParam(ADStatus, ADStatusError);
+                setStringParam(ADStatusMessage, "Failed to allocate image");
+                callParamCallbacks();
+                continue;
             }
 
             pImage->uniqueId = imageCounter;

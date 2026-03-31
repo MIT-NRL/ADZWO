@@ -2,3 +2,5 @@ file "ADBase_settings.req", P=$(P), R=$(R)
 $(P)$(R)Offset
 $(P)$(R)USBBandwidth
 $(P)$(R)USBBandwidthAuto
+$(P)$(R)HighSpeedMode
+$(P)$(R)VideoMode

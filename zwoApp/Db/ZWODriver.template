@@ -17,6 +17,44 @@ record(bi, "$(P)$(R)CameraConnect_RBV")
    field(SCAN, "I/O Intr")
 }
 
+record(bo, "$(P)$(R)HighSpeedMode")
+{
+   field(PINI, "YES")
+   field(DTYP, "asynInt32")
+   field(ZNAM, "Normal")
+   field(ONAM, "High Speed")
+   field(OUT,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))HIGH_SPEED_MODE")
+   info(autosaveFields, "VAL")
+}
+
+record(bi, "$(P)$(R)HighSpeedMode_RBV")
+{
+   field(DTYP, "asynInt32")
+   field(ZNAM, "Normal")
+   field(ONAM, "High Speed")
+   field(INP,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))HIGH_SPEED_MODE")
+   field(SCAN, "I/O Intr")
+}
+
+record(bo, "$(P)$(R)VideoMode")
+{
+   field(PINI, "YES")
+   field(DTYP, "asynInt32")
+   field(ZNAM, "Exposure")
+   field(ONAM, "Video")
+   field(OUT,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))VIDEO_MODE")
+   info(autosaveFields, "VAL")
+}
+
+record(bi, "$(P)$(R)VideoMode_RBV")
+{
+   field(DTYP, "asynInt32")
+   field(ZNAM, "Exposure")
+   field(ONAM, "Video")
+   field(INP,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))VIDEO_MODE")
+   field(SCAN, "I/O Intr")
+}
+
 
 ###################################################################
 #  These records control the offset                                 # 
