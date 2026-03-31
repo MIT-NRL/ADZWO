@@ -12,6 +12,7 @@ include $(TOP)/configure/CONFIG
 # databases, templates, substitutions like this
 
 DB += ZWODriver.template
+REQ += ZWODriver_settings.req
 
 #----------------------------------------------------
 # If <anyname>.db template is not named <anyname>*.template add
@@ -20,4 +21,3 @@ DB += ZWODriver.template
 include $(TOP)/configure/RULES
 #----------------------------------------
 #  ADD RULES AFTER THIS LINE
-

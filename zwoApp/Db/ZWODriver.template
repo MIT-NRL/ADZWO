@@ -1,5 +1,22 @@
 include "ADBase.template"
 
+record(bo, "$(P)$(R)CameraConnect")
+{
+   field(DTYP, "asynInt32")
+   field(ZNAM, "Disconnected")
+   field(ONAM, "Connected")
+   field(OUT,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))CAMERA_CONNECT")
+}
+
+record(bi, "$(P)$(R)CameraConnect_RBV")
+{
+   field(DTYP, "asynInt32")
+   field(ZNAM, "Disconnected")
+   field(ONAM, "Connected")
+   field(INP,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))CAMERA_CONNECT")
+   field(SCAN, "I/O Intr")
+}
+
 
 ###################################################################
 #  These records control the offset                                 # 
@@ -70,4 +87,3 @@ record(bi, "$(P)$(R)USBBandwidthAuto_RBV")
     field(INP,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))USB_BANDWIDTH_AUTO")
     field(SCAN, "I/O Intr")
 }
-

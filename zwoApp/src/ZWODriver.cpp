@@ -32,12 +32,41 @@ static void ZWODriverPollingTaskC(void *drvPvt) {
     driver->pollingTask();
 }
 
+static long clampUnsignedRange(long value, unsigned long minValue,
+                               unsigned long maxValue) {
+    if ((minValue == 0) && (maxValue == 0)) {
+        return value;
+    }
+    if (value < (long)minValue) {
+        return (long)minValue;
+    }
+    if (value > (long)maxValue) {
+        return (long)maxValue;
+    }
+    return value;
+}
+
+static long clampSignedRange(long value, long minValue, long maxValue) {
+    if ((minValue == 0) && (maxValue == 0)) {
+        return value;
+    }
+    if (value < minValue) {
+        return minValue;
+    }
+    if (value > maxValue) {
+        return maxValue;
+    }
+    return value;
+}
+
 ZWODriver::ZWODriver(const char *portName, int maxBuffers, size_t maxMemory,
                      int priority, int stackSize)
     : ADDriver(portName, 1, 0, maxBuffers, maxMemory, 0,
                0,    /* No interfaces beyond those set in ADDriver.cpp */
-               0, 1, /* ASYN_CANBLOCK=0, ASYN_MULTIDEVICE=0, autoConnect=1 */
+               0, 0, /* ASYN_CANBLOCK=0, ASYN_MULTIDEVICE=0, autoConnect=0 */
                priority, stackSize) {
+    memset(&this->cameraInfo, 0, sizeof(this->cameraInfo));
+    memset(&this->controlLimits, 0, sizeof(this->controlLimits));
 
     createParam(ADOffsetString, asynParamFloat64, &ADOffset);
     createParam(ADCoolerPowerPercString, asynParamInt32,
@@ -48,8 +77,7 @@ ZWODriver::ZWODriver(const char *portName, int maxBuffers, size_t maxMemory,
                 &ADUSBBandwidth);
     createParam(ADUSBBandwidthAutoString, asynParamInt32,
                 &ADUSBBandwidthAuto);
-
-    printf("\n\n\n\n\n");
+    createParam(ADCameraConnectString, asynParamInt32, &ADCameraConnect);
 
     int status = asynSuccess;
 
@@ -57,7 +85,10 @@ ZWODriver::ZWODriver(const char *portName, int maxBuffers, size_t maxMemory,
     this->stopEvent = new epicsEvent();
 
     this->cameraID = -1;
-    this->connect(this->pasynUserSelf);
+    this->deviceIsReachable = true;
+    asynPortDriver::connect(this->pasynUserSelf);
+    setIntegerParam(ADCameraConnect, 0);
+    connectCamera();
 
     // Set default values
     status |= setIntegerParam(
@@ -87,31 +118,250 @@ ZWODriver::ZWODriver(const char *portName, int maxBuffers, size_t maxMemory,
                   driverName, __func__);
         return;
     }
-
-    printf("\n\n\n\n\n");
     return;
 }
 
 ZWODriver::~ZWODriver() { disconnect(this->pasynUserSelf); }
 
 asynStatus ZWODriver::connect(asynUser *pasynUser) {
-    disconnectCamera();
+    (void)pasynUser;
+    disconnectCamera("Disconnected");
     return connectCamera();
 }
 
 asynStatus ZWODriver::disconnect(asynUser *pasynUser) {
-    return this->disconnectCamera();
+    (void)pasynUser;
+    return this->disconnectCamera("Disconnected");
+}
+
+void ZWODriver::clearPendingStopEvent() {
+    while (this->stopEvent->tryWait()) {
+    }
+}
+
+asynStatus ZWODriver::setConnectionState(bool connected,
+                                         const char *statusMessage) {
+    this->deviceIsReachable = true;
+    setIntegerParam(ADCameraConnect, connected ? 1 : 0);
+    setIntegerParam(ADAcquire, 0);
+    setDoubleParam(ADTimeRemaining, 0.0);
+    setIntegerParam(ADStatus, connected ? ADStatusIdle : ADStatusDisconnected);
+    setStringParam(ADStatusMessage, statusMessage != NULL
+                                        ? statusMessage
+                                        : (connected ? "Idle" : "Disconnected"));
+    callParamCallbacks();
+    return asynSuccess;
+}
+
+asynStatus ZWODriver::attemptReconnectOnce(const char *reason,
+                                           bool *didReconnect) {
+    int wasAcquiring = 0;
+    asynStatus status;
+    if (didReconnect != NULL) {
+        *didReconnect = false;
+    }
+
+    getIntegerParam(ADAcquire, &wasAcquiring);
+
+    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
+              "%s:%s: %s; attempting single reconnect\n", driverName,
+              __func__, reason != NULL ? reason : "Camera disconnected");
+
+    setStringParam(ADStatusMessage, "Attempting reconnect");
+    callParamCallbacks();
+
+    if (cameraID >= 0) {
+        disconnectCamera("Attempting reconnect");
+    }
+
+    status = connectCamera();
+    if (status == asynSuccess) {
+        if (didReconnect != NULL) {
+            *didReconnect = true;
+        }
+        if (wasAcquiring) {
+            setIntegerParam(ADAcquire, 1);
+            callParamCallbacks();
+        }
+    }
+
+    return status;
+}
+
+asynStatus ZWODriver::handleCameraError(const char *operation,
+                                        ASI_ERROR_CODE asiStatus,
+                                        bool *didReconnect) {
+    char message[128];
+    epicsSnprintf(message, sizeof(message), "Disconnected: %s failed (%d)",
+                  operation, asiStatus);
+
+    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
+              "%s:%s: %s\n", driverName, __func__, message);
+
+    if (attemptReconnectOnce(message, didReconnect) == asynSuccess) {
+        return asynSuccess;
+    }
+
+    return asynDisconnected;
+}
+
+asynStatus ZWODriver::checkCameraConnection(const char *operation,
+                                            bool *didReconnect) {
+    ASI_CAMERA_INFO info;
+    ASI_ERROR_CODE asiStatus;
+    int numConnectedCameras;
+    bool foundCamera = false;
+
+    if (didReconnect != NULL) {
+        *didReconnect = false;
+    }
+
+    if (cameraID < 0) {
+        return asynDisconnected;
+    }
+
+    numConnectedCameras = ASIGetNumOfConnectedCameras();
+    if (numConnectedCameras <= 0) {
+        if (attemptReconnectOnce("Disconnected: camera not present",
+                                 didReconnect) == asynSuccess) {
+            return asynSuccess;
+        }
+        return asynDisconnected;
+    }
+
+    for (int cameraIndex = 0; cameraIndex < numConnectedCameras; cameraIndex++) {
+        asiStatus = ASIGetCameraProperty(&info, cameraIndex);
+        if (asiStatus != ASI_SUCCESS) {
+            return handleCameraError(operation, asiStatus);
+        }
+        if (info.CameraID == cameraID) {
+            foundCamera = true;
+            break;
+        }
+    }
+
+    if (!foundCamera) {
+        if (attemptReconnectOnce("Disconnected: camera ID no longer present",
+                                 didReconnect) == asynSuccess) {
+            return asynSuccess;
+        }
+        return asynDisconnected;
+    }
+
+    asiStatus = ASIGetCameraPropertyByID(cameraID, &info);
+    if (asiStatus != ASI_SUCCESS) {
+        return handleCameraError(operation, asiStatus, didReconnect);
+    }
+
+    return asynSuccess;
+}
+
+asynStatus ZWODriver::applyCachedSettingsToCamera() {
+    ASI_ERROR_CODE asiStatus;
+    epicsFloat64 doubleValue;
+    long controlValue;
+    int intValue;
+    ASI_BOOL isAuto = ASI_FALSE;
+
+    if (cameraID < 0) {
+        return asynDisconnected;
+    }
+
+    getDoubleParam(ADAcquireTime, &doubleValue);
+    controlValue =
+        clampUnsignedRange((long)(doubleValue * 1000.0 * 1000.0),
+                           this->controlLimits.minExposure,
+                           this->controlLimits.maxExposure);
+    asiStatus =
+        ASISetControlValue(cameraID, ASI_EXPOSURE, controlValue, ASI_FALSE);
+    if (asiStatus != ASI_SUCCESS) {
+        return asynError;
+    }
+    setDoubleParam(ADAcquireTime, (epicsFloat64)controlValue / 1000.0 / 1000.0);
+
+    getDoubleParam(ADGain, &doubleValue);
+    controlValue = clampUnsignedRange((long)doubleValue,
+                                      this->controlLimits.minGain,
+                                      this->controlLimits.maxGain);
+    asiStatus = ASISetControlValue(cameraID, ASI_GAIN, controlValue, ASI_FALSE);
+    if (asiStatus != ASI_SUCCESS) {
+        return asynError;
+    }
+    setDoubleParam(ADGain, (epicsFloat64)controlValue);
+
+    getDoubleParam(ADOffset, &doubleValue);
+    controlValue = clampUnsignedRange((long)doubleValue,
+                                      this->controlLimits.minOffset,
+                                      this->controlLimits.maxOffset);
+    asiStatus =
+        ASISetControlValue(cameraID, ASI_OFFSET, controlValue, ASI_FALSE);
+    if (asiStatus != ASI_SUCCESS) {
+        return asynError;
+    }
+    setDoubleParam(ADOffset, (epicsFloat64)controlValue);
+
+    if (cameraInfo.IsCoolerCam) {
+        asiStatus = ASISetControlValue(cameraID, ASI_COOLER_ON, 1, ASI_FALSE);
+        if (asiStatus != ASI_SUCCESS) {
+            return asynError;
+        }
+
+        getDoubleParam(ADTemperature, &doubleValue);
+        controlValue = clampSignedRange((long)doubleValue,
+                                        this->controlLimits.minTemp,
+                                        this->controlLimits.maxTemp);
+        asiStatus = ASISetControlValue(cameraID, ASI_TARGET_TEMP, controlValue,
+                                       ASI_FALSE);
+        if (asiStatus != ASI_SUCCESS) {
+            return asynError;
+        }
+        setDoubleParam(ADTemperature, (epicsFloat64)controlValue);
+    }
+
+    getIntegerParam(ADUSBBandwidthAuto, &intValue);
+    isAuto = intValue ? ASI_TRUE : ASI_FALSE;
+
+    getIntegerParam(ADUSBBandwidth, &intValue);
+    controlValue = clampUnsignedRange((long)intValue, this->controlLimits.minUSB,
+                                      this->controlLimits.maxUSB);
+    asiStatus =
+        ASISetControlValue(cameraID, ASI_BANDWIDTHOVERLOAD, controlValue, isAuto);
+    if (asiStatus != ASI_SUCCESS) {
+        return asynError;
+    }
+
+    asiStatus = ASIGetControlValue(cameraID, ASI_BANDWIDTHOVERLOAD, &controlValue,
+                                   &isAuto);
+    if (asiStatus != ASI_SUCCESS) {
+        return asynError;
+    }
+    setIntegerParam(ADUSBBandwidth, (int)controlValue);
+    setIntegerParam(ADUSBBandwidthAuto, (int)isAuto);
+
+    return asynSuccess;
 }
 
 asynStatus ZWODriver::writeInt32(asynUser *pasynUser, epicsInt32 value) {
     int function = pasynUser->reason;
     int status = asynSuccess;
-    int reverseX, reverseY;
 
     int acquiring;
     getIntegerParam(ADAcquire, &acquiring);
 
     if (function == ADAcquire) {
+        if ((value == 1) && (cameraID < 0)) {
+            if (attemptReconnectOnce("Acquire requested while disconnected") ==
+                asynSuccess) {
+                getIntegerParam(ADAcquire, &acquiring);
+            } else {
+                setIntegerParam(ADAcquire, 0);
+                setIntegerParam(ADStatus, ADStatusDisconnected);
+                setStringParam(ADStatusMessage, "Camera is disconnected");
+                callParamCallbacks();
+                return asynDisconnected;
+            }
+        }
+
         if (value == 1 && !acquiring) {
             startEvent->signal();
         }
@@ -121,7 +371,37 @@ asynStatus ZWODriver::writeInt32(asynUser *pasynUser, epicsInt32 value) {
         }
     }
 
+    if (function == ADCameraConnect) {
+        if (value) {
+            if (cameraID >= 0) {
+                status |= setIntegerParam(ADCameraConnect, 1);
+                status |= callParamCallbacks();
+                return (asynStatus)status;
+            }
+            return connectCamera();
+        }
+
+        if (cameraID >= 0) {
+            return disconnectCamera("Disconnected");
+        }
+
+        status |= setIntegerParam(ADCameraConnect, 0);
+        status |= setIntegerParam(ADStatus, ADStatusDisconnected);
+        status |= setStringParam(ADStatusMessage, "Disconnected");
+        status |= callParamCallbacks();
+        return (asynStatus)status;
+    }
+
     if ((function == ADBinX) || (function == ADBinY)) {
+        if (cameraID < 0) {
+            if (value < 1) {
+                value = 1;
+            }
+            status |= setIntegerParam(ADBinX, value);
+            status |= setIntegerParam(ADBinY, value);
+            status |= callParamCallbacks();
+            return (asynStatus)status;
+        }
         // Keep BinX and BinY in sync, and ensure that they are valid values
         for (int i = 0; i < 16; i++) {
             if (cameraInfo.SupportedBins[i] == 0)
@@ -153,35 +433,37 @@ asynStatus ZWODriver::writeInt32(asynUser *pasynUser, epicsInt32 value) {
                       driverName, __func__);
             return asynDisabled; // Ignore or reject in auto mode
         }
-        if (value > this->controlLimits.maxUSB)
-            value = this->controlLimits.maxUSB;
-        if (value < this->controlLimits.minUSB)
-            value = this->controlLimits.minUSB;
-        status |= ASISetControlValue(cameraID, ASI_BANDWIDTHOVERLOAD, value,
-                                     ASI_FALSE);
-        long bandwidthValue;
-        ASI_BOOL isAuto = ASI_FALSE; // Declare a variable for the fourth argument
-        ASIGetControlValue(cameraID, ASI_BANDWIDTHOVERLOAD, &bandwidthValue,
-                           &isAuto);
-        status |= setIntegerParam(ADUSBBandwidth, bandwidthValue);
-        status |= setIntegerParam(ADUSBBandwidthAuto, (int)isAuto);
+        value = (epicsInt32)clampUnsignedRange((long)value,
+                                               this->controlLimits.minUSB,
+                                               this->controlLimits.maxUSB);
+        if (cameraID >= 0) {
+            status |= ASISetControlValue(cameraID, ASI_BANDWIDTHOVERLOAD, value,
+                                         ASI_FALSE);
+            long bandwidthValue;
+            ASI_BOOL isAuto = ASI_FALSE;
+            ASIGetControlValue(cameraID, ASI_BANDWIDTHOVERLOAD, &bandwidthValue,
+                               &isAuto);
+            status |= setIntegerParam(ADUSBBandwidth, bandwidthValue);
+            status |= setIntegerParam(ADUSBBandwidthAuto, (int)isAuto);
+        } else {
+            status |= setIntegerParam(ADUSBBandwidth, value);
+        }
         status |= callParamCallbacks();
         return (asynStatus)status;
-
     }
 
     if (function == ADUSBBandwidthAuto) {
         ASI_BOOL autoMode = (value != 0) ? ASI_TRUE : ASI_FALSE;
-        long bandwidthValue;
-        ASI_BOOL isAuto = ASI_FALSE;
-        ASIGetControlValue(cameraID, ASI_BANDWIDTHOVERLOAD, &bandwidthValue, &isAuto);
-    
-        status |= ASISetControlValue(cameraID, ASI_BANDWIDTHOVERLOAD, bandwidthValue, autoMode);
-
-        // Update the parameter and callbacks
+        if (cameraID >= 0) {
+            long bandwidthValue;
+            ASI_BOOL isAuto = ASI_FALSE;
+            ASIGetControlValue(cameraID, ASI_BANDWIDTHOVERLOAD, &bandwidthValue,
+                               &isAuto);
+            status |= ASISetControlValue(cameraID, ASI_BANDWIDTHOVERLOAD,
+                                         bandwidthValue, autoMode);
+        }
         status |= setIntegerParam(ADUSBBandwidthAuto, (int)autoMode);
         status |= callParamCallbacks();
-    
         return (asynStatus)status;
     }
 
@@ -194,38 +476,39 @@ asynStatus ZWODriver::writeFloat64(asynUser *pasynUser, epicsFloat64 value) {
     int status = asynSuccess;
 
     if (function == ADAcquireTime) {
-        long exposureTime = value * 1000 * 1000;
-        // Make sure exposure time cannot be negative or exceed max exposure
-        if (exposureTime > this->controlLimits.maxExposure)
-            exposureTime = this->controlLimits.maxExposure;
-        if (exposureTime < this->controlLimits.minExposure)
-            exposureTime = this->controlLimits.minExposure;
-        status |=
-            ASISetControlValue(cameraID, ASI_EXPOSURE, exposureTime, ASI_FALSE);
+        long exposureTime =
+            clampUnsignedRange((long)(value * 1000.0 * 1000.0),
+                               this->controlLimits.minExposure,
+                               this->controlLimits.maxExposure);
+        value = (epicsFloat64)exposureTime / 1000.0 / 1000.0;
+        if (cameraID >= 0) {
+            status |= ASISetControlValue(cameraID, ASI_EXPOSURE, exposureTime,
+                                         ASI_FALSE);
+        }
     } else if (function == ADGain) {
-        // Make sure gain cannot be negative or exceed max gain
-        if (value > this->controlLimits.maxGain)
-            value = this->controlLimits.maxGain;
-        if (value < this->controlLimits.minGain)
-            value = this->controlLimits.minGain;
-        status |=
-            ASISetControlValue(cameraID, ASI_GAIN, (long)value, ASI_FALSE);
+        value = (epicsFloat64)clampUnsignedRange((long)value,
+                                                 this->controlLimits.minGain,
+                                                 this->controlLimits.maxGain);
+        if (cameraID >= 0) {
+            status |=
+                ASISetControlValue(cameraID, ASI_GAIN, (long)value, ASI_FALSE);
+        }
     } else if (function == ADOffset) {
-        // Make sure offset cannot be negative or exceed max offset
-        if (value > this->controlLimits.maxOffset)
-            value = this->controlLimits.maxOffset;
-        if (value < this->controlLimits.minOffset)
-            value = this->controlLimits.minOffset;
-        status |=
-            ASISetControlValue(cameraID, ASI_OFFSET, (long)value, ASI_FALSE);
+        value = (epicsFloat64)clampUnsignedRange((long)value,
+                                                 this->controlLimits.minOffset,
+                                                 this->controlLimits.maxOffset);
+        if (cameraID >= 0) {
+            status |=
+                ASISetControlValue(cameraID, ASI_OFFSET, (long)value, ASI_FALSE);
+        }
     } else if (function == ADTemperature) {
-        // Make sure target temperature cannot be below min or above max
-        if (value > this->controlLimits.maxTemp)
-            value = this->controlLimits.maxTemp;
-        if (value < this->controlLimits.minTemp)
-            value = this->controlLimits.minTemp;
-        status |= ASISetControlValue(cameraID, ASI_TARGET_TEMP, value,
-                                     ASI_FALSE);
+        value = (epicsFloat64)clampSignedRange((long)value,
+                                               this->controlLimits.minTemp,
+                                               this->controlLimits.maxTemp);
+        if (cameraID >= 0) {
+            status |= ASISetControlValue(cameraID, ASI_TARGET_TEMP, value,
+                                         ASI_FALSE);
+        }
     }
 
     status |= ADDriver::writeFloat64(pasynUser, value);
@@ -259,8 +542,6 @@ asynStatus ZWODriver::setROIFormat(ROIFormat_t *out) {
 
     int binX, binY, minX, minY, sizeX, sizeY, maxSizeX, maxSizeY;
     int imgWidth, imgHeight, imgBin, startX, startY;
-    int64_t dataSize = 0;
-
     status |= getIntegerParam(ADMinX, &minX);
     status |= getIntegerParam(ADMinY, &minY);
     status |= getIntegerParam(ADSizeX, &sizeX);
@@ -357,13 +638,14 @@ asynStatus ZWODriver::setROIFormat(ROIFormat_t *out) {
 }
 
 asynStatus ZWODriver::connectCamera() {
-    int status;
+    int status = asynSuccess;
     ASI_ERROR_CODE asiStatus;
 
     int numConnectedCameras = ASIGetNumOfConnectedCameras();
     if (numConnectedCameras == 0) {
         asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
                   "%s:%s: No ASI camera connected.\n", driverName, __func__);
+        setConnectionState(false, "No ASI camera connected");
         return asynError;
     }
 
@@ -386,7 +668,7 @@ asynStatus ZWODriver::connectCamera() {
                   "%s:%s: Failed to open camera (id: %d, error: %d) - "
                   "Try running as root\n",
                   driverName, __func__, cameraID, asiStatus);
-
+        setConnectionState(false, "Failed to open camera");
         return asynError;
     }
 
@@ -395,6 +677,8 @@ asynStatus ZWODriver::connectCamera() {
         asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
                   "%s:%s: Failed to init camera (id: %d, error: %d)\n",
                   driverName, __func__, cameraID, asiStatus);
+        ASICloseCamera(cameraID);
+        setConnectionState(false, "Failed to init camera");
         return asynError;
     }
 
@@ -402,6 +686,7 @@ asynStatus ZWODriver::connectCamera() {
     ASIGetCameraPropertyByID(cameraID, &cameraInfo);
     this->cameraID = cameraID;
     this->cameraInfo = cameraInfo;
+    memset(&this->controlLimits, 0, sizeof(this->controlLimits));
 
     // Print control capabilities
     int numControls;
@@ -427,8 +712,6 @@ asynStatus ZWODriver::connectCamera() {
         } else if (caps.ControlType == ASI_TARGET_TEMP) {
             this->controlLimits.minTemp = caps.MinValue;
             this->controlLimits.maxTemp = caps.MaxValue;
-            printf("Min temp: %ld, max temp: %ld\n", this->controlLimits.minTemp,
-                   this->controlLimits.maxTemp);
         } else if (caps.ControlType == ASI_BANDWIDTHOVERLOAD) {
             this->controlLimits.minUSB = caps.MinValue;
             this->controlLimits.maxUSB = caps.MaxValue;
@@ -453,29 +736,21 @@ asynStatus ZWODriver::connectCamera() {
     status |= setDoubleParam(ADSensorPixelSize, cameraInfo.PixelSize);
 
     long bandwidthValue;
-    ASI_BOOL isAuto = ASI_FALSE; // Declare a variable for the fourth argument
+    ASI_BOOL isAuto = ASI_FALSE;
     ASIGetControlValue(cameraID, ASI_BANDWIDTHOVERLOAD, &bandwidthValue, &isAuto);
-    printf("Bandwidth overload: %ld\n, isAuto: %d\n", bandwidthValue, isAuto);
 
     status |= setIntegerParam(ADUSBBandwidth, bandwidthValue);
+    status |= setIntegerParam(ADUSBBandwidthAuto, (int)isAuto);
 
+    status |= applyCachedSettingsToCamera();
     callParamCallbacks();
 
     if (status) {
         asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
                   "%s:%s: unable to set camera parameters on camera %d\n",
                   driverName, __func__, cameraID);
+        disconnectCamera("Failed to configure camera");
         return asynError;
-    }
-
-    // Configure cooling
-    if (cameraInfo.IsCoolerCam) {
-        ASISetControlValue(cameraID, ASI_COOLER_ON, 1, ASI_FALSE);
-
-        epicsFloat64 targetTemp;
-        status |= getDoubleParam(ADTemperature, &targetTemp);
-        ASISetControlValue(cameraID, ASI_TARGET_TEMP, (int)targetTemp,
-                           ASI_FALSE);
     }
 
     // Print ID
@@ -493,21 +768,25 @@ asynStatus ZWODriver::connectCamera() {
                       driverName, __func__, cameraInfo.Name,
                       cameraInfo.CameraID, idString);
 
-    
-    
-    return asynSuccess;
+    clearPendingStopEvent();
+    return setConnectionState(true, "Idle");
 }
 
-asynStatus ZWODriver::disconnectCamera() {
-    if (cameraID < 0)
-        return asynDisconnected;
-
-    int status = ASI_SUCCESS;
-    status |= ASIStopExposure(cameraID);
-    status |= ASICloseCamera(cameraID);
-
+asynStatus ZWODriver::disconnectCamera(const char *statusMessage) {
+    int connectedCameraID = cameraID;
     cameraID = -1;
-    return (status == ASI_SUCCESS) ? asynSuccess : asynError;
+
+    stopEvent->signal();
+
+    if (connectedCameraID >= 0) {
+        ASIStopExposure(connectedCameraID);
+        ASICloseCamera(connectedCameraID);
+    }
+
+    memset(&this->cameraInfo, 0, sizeof(this->cameraInfo));
+    memset(&this->controlLimits, 0, sizeof(this->controlLimits));
+
+    return setConnectionState(false, statusMessage);
 }
 
 void ZWODriver::captureTask() {
@@ -518,17 +797,20 @@ void ZWODriver::captureTask() {
     int acquire = 0;
     int arrayCallbacks;
     double acquireTime;
-    double timeRemaining;
+    double timeRemaining = 0.0;
     epicsTimeStamp startTime, endTime, currentTime;
     double acquirePeriod;
 
     ASI_EXPOSURE_STATUS exposureStatus;
+    ASI_ERROR_CODE asiStatus;
     ROIFormat_t roiFormat;
 
     this->lock();
     while (true) {
         if (cameraID < 0) {
+            this->unlock();
             epicsThreadSleep(1);
+            this->lock();
             continue;
         }
 
@@ -536,13 +818,12 @@ void ZWODriver::captureTask() {
         if (!acquire) {
             this->unlock();
             bool signal = this->startEvent->wait(1);
-            if (!status) 
-                setStringParam(ADStatusMessage, "Idle");
             this->lock();
 
             if (!signal)
                 continue;
             acquire = 1;
+            clearPendingStopEvent();
             setIntegerParam(ADNumImagesCounter, 0);
         }
 
@@ -567,22 +848,46 @@ void ZWODriver::captureTask() {
 
         // Wait until camera is ready to start with exposure
         this->unlock();
-        while (!ASIGetExpStatus(cameraID, &exposureStatus) &&
-               exposureStatus == ASI_EXP_WORKING) {
+        asiStatus = ASI_SUCCESS;
+        while (cameraID >= 0) {
+            asiStatus = ASIGetExpStatus(cameraID, &exposureStatus);
+            if ((asiStatus != ASI_SUCCESS) ||
+                (exposureStatus != ASI_EXP_WORKING)) {
+                break;
+            }
             epicsThreadSleep(SHORT_WAIT);
         }
         this->lock();
 
-        epicsTimeGetCurrent(&startTime);
-
-        if (ASIStartExposure(cameraID, ASI_FALSE)) {
-            // FAILED
-            setIntegerParam(ADStatus, ADStatusError);
-            setStringParam(ADStatusMessage, "Failed to start exposure");
-            callParamCallbacks();
+        if (cameraID < 0) {
+            acquire = 0;
             continue;
         }
-        
+
+        if (asiStatus != ASI_SUCCESS) {
+            bool didReconnect = false;
+            if (handleCameraError("checking exposure status", asiStatus,
+                                  &didReconnect) == asynSuccess &&
+                didReconnect) {
+                continue;
+            }
+            acquire = 0;
+            continue;
+        }
+
+        epicsTimeGetCurrent(&startTime);
+
+        asiStatus = ASIStartExposure(cameraID, ASI_FALSE);
+        if (asiStatus != ASI_SUCCESS) {
+            bool didReconnect = false;
+            if (handleCameraError("starting exposure", asiStatus,
+                                  &didReconnect) == asynSuccess &&
+                didReconnect) {
+                continue;
+            }
+            acquire = 0;
+            continue;
+        }
 
         setStringParam(ADStatusMessage, "Waiting for exposure");
         setIntegerParam(ADStatus, ADStatusAcquire);
@@ -592,12 +897,17 @@ void ZWODriver::captureTask() {
         epicsTimeGetCurrent(&lastUpdate);
 
         // Wait until image has been acquired
-        while (!ASIGetExpStatus(cameraID, &exposureStatus) &&
-               exposureStatus == ASI_EXP_WORKING) {
-            
+        asiStatus = ASI_SUCCESS;
+        while (cameraID >= 0) {
+            asiStatus = ASIGetExpStatus(cameraID, &exposureStatus);
+            if ((asiStatus != ASI_SUCCESS) ||
+                (exposureStatus != ASI_EXP_WORKING)) {
+                break;
+            }
+
             epicsTimeGetCurrent(&currentTime);
             double sinceLastUpdate = epicsTimeDiffInSeconds(&currentTime, &lastUpdate);
-            
+
             // Lower the update frequency
             if (sinceLastUpdate >= 0.01) { // update every 0.01 seconds
                 timeRemaining = acquireTime - epicsTimeDiffInSeconds(&currentTime, &startTime);
@@ -615,7 +925,9 @@ void ZWODriver::captureTask() {
             this->lock();
             if (s) {
                 // Abort exposure
-                ASIStopExposure(cameraID);
+                if (cameraID >= 0) {
+                    ASIStopExposure(cameraID);
+                }
 
                 acquire = 0;
                 setIntegerParam(ADAcquire, 0);
@@ -627,8 +939,29 @@ void ZWODriver::captureTask() {
                 }
                 setDoubleParam(ADTimeRemaining, 0);
                 callParamCallbacks();
+                exposureStatus = ASI_EXP_FAILED;
+                break;
+            }
+        }
+
+        if (acquire == 0) {
+            continue;
+        }
+
+        if (cameraID < 0) {
+            acquire = 0;
+            continue;
+        }
+
+        if (asiStatus != ASI_SUCCESS) {
+            bool didReconnect = false;
+            if (handleCameraError("waiting for exposure", asiStatus,
+                                  &didReconnect) == asynSuccess &&
+                didReconnect) {
                 continue;
             }
+            acquire = 0;
+            continue;
         }
 
         setDoubleParam(ADTimeRemaining, 0);
@@ -668,8 +1001,20 @@ void ZWODriver::captureTask() {
             pImage->timeStamp = startTime.secPastEpoch + startTime.nsec / 1.e9;
             updateTimeStamp(&pImage->epicsTS);
 
-            ASIGetDataAfterExp(cameraID, (unsigned char *)pImage->pData,
-                               pImage->dataSize);
+            asiStatus = ASIGetDataAfterExp(cameraID,
+                                           (unsigned char *)pImage->pData,
+                                           pImage->dataSize);
+            if (asiStatus != ASI_SUCCESS) {
+                pImage->release();
+                bool didReconnect = false;
+                if (handleCameraError("reading image data", asiStatus,
+                                      &didReconnect) == asynSuccess &&
+                    didReconnect) {
+                    continue;
+                }
+                acquire = 0;
+                continue;
+            }
 
             setIntegerParam(NDArraySize, pImage->dataSize);
 
@@ -680,11 +1025,20 @@ void ZWODriver::captureTask() {
             }
             pImage->release();
         } else {
-            // ERROR
+            bool didReconnect = false;
+            if (checkCameraConnection("probing camera after failed exposure",
+                                      &didReconnect) != asynSuccess) {
+                acquire = 0;
+                continue;
+            }
+            if (didReconnect) {
+                continue;
+            }
+
             asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
                       "%s:%s: Exposure failed with status %d\n", driverName,
                       __func__, exposureStatus);
-
+            setStringParam(ADStatusMessage, "Exposure failed");
             setIntegerParam(ADStatus, ADStatusError);
         }
 
@@ -732,6 +1086,7 @@ void ZWODriver::pollingTask() {
 
     long cValue;
     ASI_BOOL cAuto;
+    ASI_ERROR_CODE asiStatus;
 
     while (true) {
         epicsThreadSleep(timeout);
@@ -740,23 +1095,34 @@ void ZWODriver::pollingTask() {
 
         lock();
 
-        if (ASIGetControlValue(cameraID, ASI_TEMPERATURE, &cValue, &cAuto) ==
-            ASI_SUCCESS) {
-            double temperature = (double)(cValue) / 10.0;
-            setDoubleParam(ADTemperatureActual, temperature);
+        asiStatus = ASIGetControlValue(cameraID, ASI_TEMPERATURE, &cValue,
+                                       &cAuto);
+        if (asiStatus != ASI_SUCCESS) {
+            handleCameraError("polling temperature", asiStatus);
+            unlock();
+            continue;
         }
+        double temperature = (double)(cValue) / 10.0;
+        setDoubleParam(ADTemperatureActual, temperature);
 
-        if (ASIGetControlValue(cameraID, ASI_COOLER_POWER_PERC, &cValue,
-                             &cAuto) == ASI_SUCCESS) {
-            setIntegerParam(ADCoolerPowerPerc, (int)cValue);
+        asiStatus = ASIGetControlValue(cameraID, ASI_COOLER_POWER_PERC,
+                                       &cValue, &cAuto);
+        if (asiStatus != ASI_SUCCESS) {
+            handleCameraError("polling cooler power", asiStatus);
+            unlock();
+            continue;
         }
+        setIntegerParam(ADCoolerPowerPerc, (int)cValue);
 
-        if (ASIGetControlValue(cameraID, ASI_BANDWIDTHOVERLOAD, &cValue,
-                             &cAuto) == ASI_SUCCESS) {
-            setIntegerParam(ADUSBBandwidth, (int)cValue);
+        asiStatus = ASIGetControlValue(cameraID, ASI_BANDWIDTHOVERLOAD,
+                                       &cValue, &cAuto);
+        if (asiStatus != ASI_SUCCESS) {
+            handleCameraError("polling USB bandwidth", asiStatus);
+            unlock();
+            continue;
         }
-
-
+        setIntegerParam(ADUSBBandwidth, (int)cValue);
+        setIntegerParam(ADUSBBandwidthAuto, (int)cAuto);
 
         callParamCallbacks();
         unlock();

@@ -15,6 +15,7 @@
 #define ADSensorPixelSizeString "SENSOR_PIXEL_SIZE"
 #define ADUSBBandwidthString "USB_BANDWIDTH"
 #define ADUSBBandwidthAutoString "USB_BANDWIDTH_AUTO"
+#define ADCameraConnectString "CAMERA_CONNECT"
 
 typedef struct ROIFormat {
     NDColorMode_t colorMode;
@@ -75,9 +76,19 @@ private:
     epicsEvent *startEvent;
     epicsEvent *stopEvent;
 
+    void clearPendingStopEvent();
+    asynStatus setConnectionState(bool connected, const char *statusMessage);
+    asynStatus attemptReconnectOnce(const char *reason,
+                                    bool *didReconnect = NULL);
+    asynStatus handleCameraError(const char *operation,
+                                 ASI_ERROR_CODE asiStatus,
+                                 bool *didReconnect = NULL);
+    asynStatus checkCameraConnection(const char *operation,
+                                     bool *didReconnect = NULL);
+    asynStatus applyCachedSettingsToCamera();
     asynStatus setROIFormat(ROIFormat_t *out);
     asynStatus connectCamera();
-    asynStatus disconnectCamera();
+    asynStatus disconnectCamera(const char *statusMessage = "Disconnected");
     asynStatus setReverse(int reverseX, int reverseY);
 
 protected:
@@ -86,6 +97,7 @@ protected:
     int ADSensorPixelSize;
     int ADUSBBandwidth;
     int ADUSBBandwidthAuto;
+    int ADCameraConnect;
 };
 
 #endif
