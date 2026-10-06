@@ -2,7 +2,7 @@
 
 `ADZWO` is an [EPICS](https://epics-controls.org) [areaDetector](https://areadetector.github.io/areaDetector/index.html) driver for [ZWO ASI astronomy cameras](https://www.zwoastro.com/) using ZWO's `ASICamera2` SDK.
 
-Version: `1.0.0`
+Version: `1.0.1`
 
 The runtime driver version reported through `$(P)$(R)DriverVersion_RBV` is defined in [ZWODriver.cpp](/home/sfayfar/GitHub/ADZWO/zwoApp/src/ZWODriver.cpp#L23) and matches this release. For release history and feature evolution, see [CHANGELOG.md](/home/sfayfar/GitHub/ADZWO/CHANGELOG.md).
 
@@ -25,7 +25,7 @@ Standard areaDetector functionality supported by this driver includes:
 - acquisition control with `Acquire`, `AcquireBusy`, `ImageMode`, `NumImages`, and `AcquirePeriod`
 - exposure and timing control with `AcquireTime` and `TimeRemaining`
 - camera signal controls with `Gain`
-- cooling setpoint and temperature readback with `Temperature` and `TemperatureActual`
+- conditional cooling setpoint support and sensor temperature readback with `Temperature` and `TemperatureActual`
 - image formatting with `ColorMode` and `DataType`
 - ROI control with `MinX`, `MinY`, `SizeX`, and `SizeY`
 - binning through `BinX` and `BinY`
@@ -54,6 +54,7 @@ ZWO-specific additions exposed by this module are defined in [ZWODriver.template
 - `HighSpeedMode`
 - `VideoMode`
 - `Offset`
+- `CoolingAvailable_RBV`
 - `CoolerPowerPerc_RBV`
 - `SensorPixelSize_RBV`
 - `USBBandwidth`
@@ -256,6 +257,15 @@ Practical notes:
 - Full-frame maximum rate is much higher in `Video` mode than in the exposure path.
 - ROI reduction increases frame rate significantly.
 - Binning may not improve frame rate on all cameras if the underlying sensor path is still limited by readout or transfer.
+- With the bundled SDK `1.41`, the ASI585MM exposure path resets its USB device when each still-exposure worker starts. This can make `Exposure` mode unreliable through virtualized USB on macOS. Use `Video` mode for continuous acquisition in that configuration.
+
+## Cooling Availability
+
+`CoolingAvailable_RBV` reports whether the connected camera exposes a cooler-power control. On an uncooled camera:
+
+- sensor temperature remains available through `TemperatureActual`
+- target-temperature writes are ignored by the hardware driver
+- target temperature and cooler power are shown as unavailable in the PyDM screen
 
 ## High Speed Mode
 
@@ -328,18 +338,24 @@ If your site IOC restores PVs with autosave, make sure the ZWO request files are
 
 Use `VideoMode = Video` and a reduced ROI when testing maximum frame rate. ZWO's published top-end rates are for the streaming/video path, not the snapshot exposure path.
 
+### Camera disconnects in a macOS virtual machine during exposure acquisition
+
+On the ASI585MM tested with SDK `1.41`, the SDK still-exposure worker issues a USB device reset for each image. macOS USB redirection may eventually fail one of these resets and detach the camera. Use `VideoMode = Video` for continuous acquisition; it keeps the SDK streaming path active and avoids a reset for every frame.
+
 ## Versioning
 
 `ADZWO` now uses semantic versioning.
 
-- Current version: `1.0.0`
+- Current version: `1.0.1`
 - SDK bundled in this release: `ASICamera2 1.41`
-- Runtime driver version string: `1.0.0`
+- Runtime driver version string: `1.0.1`
 
 Detailed release history is in [CHANGELOG.md](/home/sfayfar/GitHub/ADZWO/CHANGELOG.md).
 
 ## Version History Summary
 
+- `1.0.1`:
+  Added cooling-capability reporting, prevented unsupported cooler polling on uncooled cameras, and improved unavailable-cooling presentation in the PyDM screen.
 - `1.0.0`:
   First formal release. Includes reconnect handling, offline startup support, video mode, high-speed mode control, immediate ROI normalization, improved standalone IOC support, updated SDK packaging, PyDM cleanup, and expanded user documentation.
 - `0.3.0`:

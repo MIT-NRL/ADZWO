@@ -84,6 +84,15 @@ record(longin, "$(P)$(R)CoolerPowerPerc_RBV")
    field(SCAN, "I/O Intr")
 }
 
+record(bi, "$(P)$(R)CoolingAvailable_RBV")
+{
+   field(DTYP, "asynInt32")
+   field(ZNAM, "Unavailable")
+   field(ONAM, "Available")
+   field(INP,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))COOLING_AVAILABLE")
+   field(SCAN, "I/O Intr")
+}
+
 record(ai, "$(P)$(R)SensorPixelSize_RBV")
 {
    field(DTYP, "asynFloat64")

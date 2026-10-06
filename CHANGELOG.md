@@ -4,6 +4,28 @@ All notable changes to `ADZWO` are documented in this file.
 
 This project now uses semantic versioning.
 
+## [1.0.1] - 2026-10-06
+
+Patch release improving support for uncooled cameras.
+
+### Added
+
+- `CoolingAvailable_RBV`, indicating whether the connected camera exposes
+  cooler controls
+
+### Changed
+
+- the PyDM screen now distinguishes sensor temperature from the cooling
+  setpoint and displays unavailable cooling controls as `N/A`
+- target-temperature writes are skipped when the camera has no cooler
+
+### Fixed
+
+- cooler-power polling now runs only when the SDK advertises the control,
+  preventing `ASI_ERROR_INVALID_CONTROL_TYPE` from being misclassified as a
+  disconnect and causing repeated reconnects on uncooled cameras such as the
+  ASI585MM
+
 ## [1.0.0] - 2026-03-31
 
 First formal `ADZWO` release.

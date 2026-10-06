@@ -11,6 +11,7 @@
 #define SHORT_WAIT (0.00025)
 
 #define ADOffsetString "OFFSET"
+#define ADCoolingAvailableString "COOLING_AVAILABLE"
 #define ADCoolerPowerPercString "COOLER_POWER_PERC"
 #define ADSensorPixelSizeString "SENSOR_PIXEL_SIZE"
 #define ADUSBBandwidthString "USB_BANDWIDTH"
@@ -72,6 +73,7 @@ public:
 
 private:
     int cameraID;
+    bool hasCoolerPowerControl;
     bool hasHighSpeedMode;
     ASI_CAMERA_INFO cameraInfo;
     ASI_CONTROL_LIMITS controlLimits;
@@ -98,6 +100,7 @@ private:
 
 protected:
     int ADOffset;
+    int ADCoolingAvailable;
     int ADCoolerPowerPerc;
     int ADSensorPixelSize;
     int ADUSBBandwidth;

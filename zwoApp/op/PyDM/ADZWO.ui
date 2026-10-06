@@ -3190,7 +3190,7 @@
   }</string>
    </property>
    <property name="text">
-    <string>Temperature</string>
+    <string>Sensor Temperature</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -3255,7 +3255,7 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>${P}${R}AcquireTime</string>
+    <string>Target temperature: ${P}${R}Temperature</string>
    </property>
    <property name="styleSheet">
     <string notr="true">PyDMLineEdit{
@@ -3269,6 +3269,9 @@
    </property>
    <property name="channel" stdset="0">
     <string>ca://${P}${R}Temperature</string>
+   </property>
+   <property name="rules" stdset="0">
+    <string>[{&quot;name&quot;: &quot;visibility&quot;, &quot;property&quot;: &quot;Visible&quot;, &quot;channels&quot;: [{&quot;channel&quot;: &quot;ca://${P}${R}CoolingAvailable_RBV&quot;, &quot;trigger&quot;: true, &quot;use_enum&quot;: false}], &quot;expression&quot;: &quot;ch[0]!=0&quot;}]</string>
    </property>
   </widget>
   <widget class="PyDMLabel" name="text_update_25">
@@ -3286,7 +3289,7 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>PV: ${P}${R}AcquireTime_RBV</string>
+    <string>Target temperature readback: ${P}${R}Temperature_RBV</string>
    </property>
    <property name="styleSheet">
     <string notr="true">PyDMLabel{
@@ -3305,6 +3308,37 @@
    </property>
    <property name="channel" stdset="0">
     <string>ca://${P}${R}Temperature_RBV</string>
+   </property>
+   <property name="rules" stdset="0">
+    <string>[{&quot;name&quot;: &quot;visibility&quot;, &quot;property&quot;: &quot;Visible&quot;, &quot;channels&quot;: [{&quot;channel&quot;: &quot;ca://${P}${R}CoolingAvailable_RBV&quot;, &quot;trigger&quot;: true, &quot;use_enum&quot;: false}], &quot;expression&quot;: &quot;ch[0]!=0&quot;}]</string>
+   </property>
+  </widget>
+  <widget class="PyDMLabel" name="temperature_unavailable">
+   <property name="geometry">
+    <rect>
+     <x>503</x>
+     <y>807</y>
+     <width>145</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+     <italic>true</italic>
+    </font>
+   </property>
+   <property name="toolTip">
+    <string>This camera has no temperature-controlled cooler.</string>
+   </property>
+   <property name="text">
+    <string>N/A (no cooler)</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+   </property>
+   <property name="rules" stdset="0">
+    <string>[{&quot;name&quot;: &quot;visibility&quot;, &quot;property&quot;: &quot;Visible&quot;, &quot;channels&quot;: [{&quot;channel&quot;: &quot;ca://${P}${R}CoolingAvailable_RBV&quot;, &quot;trigger&quot;: true, &quot;use_enum&quot;: false}], &quot;expression&quot;: &quot;ch[0]==0&quot;}]</string>
    </property>
   </widget>
   <widget class="QLabel" name="text_36">
@@ -5728,7 +5762,7 @@
   }</string>
    </property>
    <property name="text">
-    <string>Power Perc</string>
+    <string>Cooler Power</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -5777,6 +5811,37 @@
    </property>
    <property name="displayFormat" stdset="0">
     <enum>PyDMLabel::String</enum>
+   </property>
+   <property name="rules" stdset="0">
+    <string>[{&quot;name&quot;: &quot;visibility&quot;, &quot;property&quot;: &quot;Visible&quot;, &quot;channels&quot;: [{&quot;channel&quot;: &quot;ca://${P}${R}CoolingAvailable_RBV&quot;, &quot;trigger&quot;: true, &quot;use_enum&quot;: false}], &quot;expression&quot;: &quot;ch[0]!=0&quot;}]</string>
+   </property>
+  </widget>
+  <widget class="PyDMLabel" name="cooler_power_unavailable">
+   <property name="geometry">
+    <rect>
+     <x>502</x>
+     <y>865</y>
+     <width>80</width>
+     <height>18</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+     <italic>true</italic>
+    </font>
+   </property>
+   <property name="toolTip">
+    <string>This camera has no cooler-power control.</string>
+   </property>
+   <property name="text">
+    <string>N/A</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+   </property>
+   <property name="rules" stdset="0">
+    <string>[{&quot;name&quot;: &quot;visibility&quot;, &quot;property&quot;: &quot;Visible&quot;, &quot;channels&quot;: [{&quot;channel&quot;: &quot;ca://${P}${R}CoolingAvailable_RBV&quot;, &quot;trigger&quot;: true, &quot;use_enum&quot;: false}], &quot;expression&quot;: &quot;ch[0]==0&quot;}]</string>
    </property>
   </widget>
   <widget class="PyDMLabel" name="text_update_48">

@@ -20,7 +20,7 @@
 #include <iocsh.h>
 
 static const char *driverName = "ZWODriver";
-static const char *driverVersion = "1.0.0";
+static const char *driverVersion = "1.0.1";
 
 static void ZWODriverCaptureTaskC(void *drvPvt) {
     ZWODriver *driver = (ZWODriver *)drvPvt;
@@ -89,6 +89,8 @@ ZWODriver::ZWODriver(const char *portName, int maxBuffers, size_t maxMemory,
     memset(&this->controlLimits, 0, sizeof(this->controlLimits));
 
     createParam(ADOffsetString, asynParamFloat64, &ADOffset);
+    createParam(ADCoolingAvailableString, asynParamInt32,
+                &ADCoolingAvailable);
     createParam(ADCoolerPowerPercString, asynParamInt32,
                 &ADCoolerPowerPerc);
     createParam(ADSensorPixelSizeString, asynParamFloat64,
@@ -107,10 +109,12 @@ ZWODriver::ZWODriver(const char *portName, int maxBuffers, size_t maxMemory,
     this->stopEvent = new epicsEvent();
 
     this->cameraID = -1;
+    this->hasCoolerPowerControl = false;
     this->hasHighSpeedMode = false;
     this->deviceIsReachable = true;
     asynPortDriver::connect(this->pasynUserSelf);
     setIntegerParam(ADCameraConnect, 0);
+    setIntegerParam(ADCoolingAvailable, 0);
     setIntegerParam(ADHighSpeedMode, 0);
     setIntegerParam(ADVideoMode, 0);
     connectCamera();
@@ -569,7 +573,7 @@ asynStatus ZWODriver::writeFloat64(asynUser *pasynUser, epicsFloat64 value) {
         value = (epicsFloat64)clampSignedRange((long)value,
                                                this->controlLimits.minTemp,
                                                this->controlLimits.maxTemp);
-        if (cameraID >= 0) {
+        if (cameraID >= 0 && hasCoolerPowerControl) {
             status |= ASISetControlValue(cameraID, ASI_TARGET_TEMP, value,
                                          ASI_FALSE);
         }
@@ -927,6 +931,7 @@ asynStatus ZWODriver::connectCamera() {
     //
     ASIGetCameraPropertyByID(cameraID, &cameraInfo);
     this->cameraID = cameraID;
+    this->hasCoolerPowerControl = false;
     this->hasHighSpeedMode = false;
     this->cameraInfo = cameraInfo;
     memset(&this->controlLimits, 0, sizeof(this->controlLimits));
@@ -958,10 +963,15 @@ asynStatus ZWODriver::connectCamera() {
         } else if (caps.ControlType == ASI_BANDWIDTHOVERLOAD) {
             this->controlLimits.minUSB = caps.MinValue;
             this->controlLimits.maxUSB = caps.MaxValue;
+        } else if (caps.ControlType == ASI_COOLER_POWER_PERC) {
+            this->hasCoolerPowerControl = true;
         } else if (caps.ControlType == ASI_HIGH_SPEED_MODE) {
             this->hasHighSpeedMode = true;
         }
     }
+
+    status |= setIntegerParam(ADCoolingAvailable,
+                              hasCoolerPowerControl ? 1 : 0);
 
     // Set some initial values for various parameters
     status |= setStringParam(ADManufacturer, "ZWO");
@@ -1038,8 +1048,10 @@ asynStatus ZWODriver::disconnectCamera(const char *statusMessage) {
     }
 
     memset(&this->cameraInfo, 0, sizeof(this->cameraInfo));
+    this->hasCoolerPowerControl = false;
     this->hasHighSpeedMode = false;
     memset(&this->controlLimits, 0, sizeof(this->controlLimits));
+    setIntegerParam(ADCoolingAvailable, 0);
 
     return setConnectionState(false, statusMessage);
 }
@@ -1607,14 +1619,18 @@ void ZWODriver::pollingTask() {
         double temperature = (double)(cValue) / 10.0;
         setDoubleParam(ADTemperatureActual, temperature);
 
-        asiStatus = ASIGetControlValue(cameraID, ASI_COOLER_POWER_PERC,
-                                       &cValue, &cAuto);
-        if (asiStatus != ASI_SUCCESS) {
-            handleCameraError("polling cooler power", asiStatus);
-            unlock();
-            continue;
+        if (hasCoolerPowerControl) {
+            asiStatus = ASIGetControlValue(cameraID, ASI_COOLER_POWER_PERC,
+                                           &cValue, &cAuto);
+            if (asiStatus != ASI_SUCCESS) {
+                handleCameraError("polling cooler power", asiStatus);
+                unlock();
+                continue;
+            }
+            setIntegerParam(ADCoolerPowerPerc, (int)cValue);
+        } else {
+            setIntegerParam(ADCoolerPowerPerc, 0);
         }
-        setIntegerParam(ADCoolerPowerPerc, (int)cValue);
 
         asiStatus = ASIGetControlValue(cameraID, ASI_BANDWIDTHOVERLOAD,
                                        &cValue, &cAuto);
